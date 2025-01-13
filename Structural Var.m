@@ -7,12 +7,13 @@ clc, clear
 
 global NLags
 
+dataTable = readtable('Topic 2 Data.xlsx');
+time = datetime(dataTable{2:end-4, 1}, 'InputFormat', 'yyyy-MM-dd');
+data = dataTable{2:end-4, [3, 5, 8]};
 
-data = readmatrix("Topic 2 Data.xlsx");
-data = data(2:end-4, [3 5 8]);
 
 % Variables (of interest in dataset)
-% 1 Date: from 8/1960 to 7/2023
+% 1 Date: from 8/1960 to 7/2024
 %
 % 2 US Industrial Production, Total Index (source: FRED)
 % 3 US Industrial Production Percent Growth Rate (log-differences)
@@ -27,10 +28,24 @@ data = data(2:end-4, [3 5 8]);
 % 10 UM12   US macroeconomic uncertainty measure 12-month ahead
 % // uncertainty measures taken from Sydney Ludvigson website
 
-Y=DataSet(:,1); % Industrial Production variable
-UM1=DataSet(:,2); % Macro Uncertainty variable
-UMF=DataSet(:,3); % Financial Uncertainty variable
+Y=data(:,1); % Industrial Production variable
+UM=data(:,2); % Macro Uncertainty variable
+UF=data(:,3); % Financial Uncertainty variable
 
+figure(1);
+
+% Plot delle variabili UM e UF
+plot(time, data(:, 2), 'b', 'DisplayName', 'UM'); % Prima colonna di data per UM
+hold on; 
+plot(time, data(:, 3), 'r', 'DisplayName', 'UF'); % Seconda colonna di data per UF
+hold off;
+
+% Personalizzazione del grafico
+xlabel('Time'); % Etichetta asse x
+ylabel('Value'); % Etichetta asse y
+title('Time Series of UM and UF'); % Titolo del grafico
+legend; % Mostra la legenda
+grid on; % Attiva la griglia
 
 %% Step 1: Identification of VAR Variance Structural Breaks
  
