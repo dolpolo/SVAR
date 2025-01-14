@@ -31,6 +31,7 @@ data = dataTable{2:end-4, [3, 5, 8]};
 Y=data(:,1); % Industrial Production
 UF=data(:,2); % Macro Uncertainty
 UM=data(:,3); % Financial Uncertainty
+W = [UM, Y, UF]; % data
 
 % Time series plot
 figure(1)
@@ -43,10 +44,48 @@ title('Macroeconomic and Financial Uncertainty');
 legend;
 grid on;
 
+%% Step 0: Descriptive analysis
 
-%% Step 1: Rolling Window Analysis for Variance Structural Breaks
+varNames = {'Macroeconomics uncertainty', 'Real economic activity', 'Financial uncertainty'};
 
-W = [UM, Y, UF];
+% ACF e PACF For each variable
+numVars = size(W, 2); % 1*3
+
+for i = 1:numVars
+    figure; 
+    
+   % Time series graph
+    subplot(3,1,1);
+    plot(W(:,i));
+    title(['Time Series for ', varNames{i}]);
+    xlabel('Time');
+    ylabel(varNames{i});
+    grid on;
+    
+    % Autocorrelation
+    subplot(3,1,2);
+    autocorr(W(:,i));
+    title(['Autocorrelation for ', varNames{i}]);
+    
+    % Partial Autocorrelation
+    subplot(3,1,3);
+    parcorr(W(:,i));
+    title(['Partial Autocorrelation for ', varNames{i}]);
+end
+
+% Stationarity
+W_diff = diff(W); % First differences
+
+figure;
+plot(W_diff)
+
+numVars = size(W_diff, 2); 
+for i = 1:numVars
+    [h, pValue, stat, cValue] = adftest(W_diff(:,i));
+    fprintf('Variable %d: h = %d, pValue = %.4f, stat = %.4f\n', i, h, pValue, stat);
+end
+
+%% Step 1: Rolling Window Analysis for Variance Structural Breaks 
 
 % Set parameters
 p = 4;                                                                      % Number of lags
@@ -110,6 +149,33 @@ for i = 1:3
             title(t, 'interpreter', 'latex')
         end
     end
+end
+
+% Chow Tests (H0: no structural breaks)
+
+% Define indipendenti variables and a constant
+X = [ones(size(UM)), UM, UF];
+
+% Breakpoint List
+breakpoints = [284, 569, 716];                                              % 1984:M3, 2007:M12, 2020:M3
+
+% Loop to run a test for each breakpoint
+for i = 1:length(breakpoints)
+    bp = breakpoints(i);
+    fprintf('Chow Test for observation %d:\n', bp);
+    
+    % Chow Test
+    [h, pValue, stat, cValue] = chowtest(X, Y, bp);
+    
+    % List of results
+    if h == 1
+        fprintf('Significant breakpoints (p-value: %.4f).\n', pValue);
+    else
+        fprintf('No breakpoints (p-value: %.4f).\n', pValue);
+    end
+
+    fprintf('Chow Test Statistics: %.4f\n', stat);
+    fprintf('Critical Value: %.4f\n\n', cValue);
 end
 
 
