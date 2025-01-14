@@ -5,7 +5,7 @@
 
 clc, clear
 
-global p
+global p                                                                    % Number of lags in VAR model
 
 dataTable = readtable('Topic 2 Data.xlsx');
 time = datetime(dataTable{2:end-4, 1}, 'InputFormat', 'yyyy-MM-dd');
@@ -28,108 +28,94 @@ data = dataTable{2:end-4, [3, 5, 8]};
 % 10 UM12   US macroeconomic uncertainty measure 12-month ahead
 % // uncertainty measures taken from Sydney Ludvigson website
 
-Y=data(:,1); % Industrial Production variable
-UF=data(:,2); % Macro Uncertainty variable
-UM=data(:,3); % Financial Uncertainty variable
+Y=data(:,1); % Industrial Production
+UF=data(:,2); % Macro Uncertainty
+UM=data(:,3); % Financial Uncertainty
 
-figure(1);
-
-% Plot delle variabili UM e UF
-plot(time, data(:, 2), 'b', 'DisplayName', 'UM'); % Prima colonna di data per UM
-hold on; 
-plot(time, data(:, 3), 'r', 'DisplayName', 'UF'); % Seconda colonna di data per UF
-hold off;
-
-% Personalizzazione del grafico
-xlabel('Time'); % Etichetta asse x
-ylabel('Value'); % Etichetta asse y
-title('Time Series of UM and UF'); % Titolo del grafico
-legend; % Mostra la legenda
-grid on; % Attiva la griglia
+% Time series plot
+figure(1)
+plot(time, UF, 'b', 'DisplayName', 'UM');
+hold on 
+plot(time, UM, 'r', 'DisplayName', 'UF');
+hold off
+xlabel('Time');
+title('Macroeconomic and Financial Uncertainty');
+legend;
+grid on;
 
 
-%% Rolling Window
+%% Step 1: Rolling Window Analysis for Variance Structural Breaks
 
-% Step 1: EStimate the VAR recursivelly
-% Xt =Π(t)Wt +𝜂t, Σ𝜂(t):=E(𝜂t𝜂′t), t = 1, …,T,
-
-% Define your data matrix
-W = [UM, Y, UF]; % Replace with your actual data
+W = [UM, Y, UF];
 
 % Set parameters
-p = 4; % Number of lags
-t0 = 120; % Initial window size (adjust as needed)
+p = 4;                                                                      % Number of lags
+t0 = 120;                                                                   % Initial time period for rolling wondows
 
 % Recursive estimation
-for t = t0:size(W, 1)
-    model_recursive = estimate(varm(3, p), W(1:t, :)); % Estimate VAR
-    residuals = infer(model_recursive, W(1:t, :)); % Compute residuals
-    Sigma_recursive(:,:,t) = cov(residuals); % Store covariance matrix
+for t = t0:size(W,1)
+    model_recursive = estimate(varm(3,p), W(1:t,:));                        % Estimate VAR
+    residuals = infer(model_recursive, W(1:t,:));                           % Compute residuals
+    Sigma_recursive(:,:,t) = cov(residuals);                                % Store covariance matrix
 end
 
-% Rolling window estimation
+% 10-years Rolling window estimation
 window_size = 10 * 12; % 10 years 
-for t = window_size:size(W, 1)
-    model_rolling = estimate(varm(3, p), W(t-window_size+1:t, :));
-    residuals = infer(model_rolling, W(t-window_size+1:t, :));
-    Sigma_rolling(:,:,t) = cov(residuals);
+for t = window_size:size(W,1)
+    model_rolling = estimate(varm(3,p), W(t-window_size+1:t,:));
+    residuals = infer(model_rolling, W(t-window_size+1:t,:));
+    Sigma_rolling_10(:,:,t) = cov(residuals);
 end
 
-% Rolling window estimation
+% 15-years Rolling window estimation
 window_size = 15 * 12; % 10 years 
-for t = window_size:size(W, 1)
-    model_rolling = estimate(varm(3, p), W(t-window_size+1:t, :));
+for t = window_size:size(W,1)
+    model_rolling = estimate(varm(3,p), W(t-window_size+1:t, :));
     residuals = infer(model_rolling, W(t-window_size+1:t, :));
     Sigma_rolling_15(:,:,t) = cov(residuals);
 end
 
-% Step 2: Plot
 
-for i = 1 :3
-    for j = 1 : 3
-        SR_10 = squeeze(Sigma_rolling(i,j,:));
-        figure(2);
-        plot(time,SR_10)
-    end
-end
-
-% Loop per creare i grafici combinati
-figure;
+% Plot VAR covariance matrix elements over time
+figure(2)
 for i = 1:3
-    for j = i:3 % Solo parte triangolare superiore
-        subplot(3, 3, (i - 1) * 3 + j); % Posizione del grafico nella matrice 3x3
+    for j = i:3
+        SR_REC = squeeze(Sigma_recursive(i,j,120:end));
+        SR_10 = squeeze(Sigma_rolling_10(i,j,120:end));
+        SR_15 = squeeze(Sigma_rolling_15(i,j,180:end));
         
-        % Estrai la serie temporale per la covarianza/varianza specifica
-        SR_10 = squeeze(Sigma_rolling(i, j, :));
-        
-        % Disegna il grafico
-        plot(time, SR_10, 'LineWidth', 1.5);
-        hold on;
-        title(['Element (', num2str(i), ',', num2str(j), ')']);
-        
-        % Aggiungi etichette solo per l'ultima riga/colonna per chiarezza
-        if i == 3
-            xlabel('Time');
-        end
-        if j == 1
-            ylabel('Value');
+        subplot(3,3,(i-1)*3+j);
+        plot(time(120:end), SR_REC, 'b', 'LineWidth', 1.5); hold on
+        plot(time(120:end), SR_10, 'r', 'LineWidth', 1.5);
+        plot(time(180:end), SR_15, 'Color', [1, 0.5, 0], 'LineWidth', 1.5);
+        xline([time(284) time(569) time(716)], '--k', 'LineWidth', 1.5);    % Breakpoints: 1984:M3(t=284), 2007:M12(t=569), 2020:M3(t=716)
+
+        if i == 1 && j == 1                                                 % Titles
+            t = '$Var(U_{Mt})$';
+            title(t, 'interpreter', 'latex')
+        elseif i == 2 && j == 2
+            t = '$Var(Y_t)$';
+            title(t, 'interpreter', 'latex')
+        elseif i == 3 && j == 3
+            t = '$Var(U_{Ft})$';
+            title(t, 'interpreter', 'latex')
+        elseif i == 1 && j == 2
+            t = '$Cov(U_{Mt},Y_t)$';
+            title(t, 'interpreter', 'latex')
+        elseif i == 1 && j == 3
+            t = '$Cov(U_{Mt},U_{Ft})$';
+            title(t, 'interpreter', 'latex')
+        elseif i == 2 && j == 3
+            t = '$Cov(Y_t,U_{Ft})$';
+            title(t, 'interpreter', 'latex')
         end
     end
 end
-
-% Miglioramento generale del layout
-sgtitle('Matrice di Covarianze: Parte Triangolare Inferiore');
-
-%% Step 1: Identification of VAR Variance Structural Breaks
- 
-
-options = optimset('MaxFunEvals',200000,'TolFun',1e-1000,'MaxIter',200000,'TolX',1e-1000);
-
-
 
 
 %% Step 2: Closed-form VAR Estimation
 
+options = optimset('MaxFunEvals',200000,'TolFun',1e-1000,'MaxIter',200000,'TolX',1e-1000);
 
 
 %% Step 3: Structural Parameters Estimation
