@@ -139,7 +139,7 @@ Errors=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
 Omega_LK=1/(T)*Errors'*Errors;
 % C = cov(Errors)
 
-SE_H = reshape(sqrt(abs(diag(HESSIAN_LK^(-1)))),M,M*NLags+1)'
+SE_H = reshape(sqrt(abs(diag(HESSIAN_LK^(-1)))),M,M*NLags+1)';
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
 % StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
@@ -182,8 +182,8 @@ Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_
 
 LK_1Regime_Sampe = Log_LK;
 
-Errors=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
-Omega_LK=1/(T)*Errors'*Errors;
+Errors_1Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
+Omega_LK=1/(T)*Errors_1Regime'*Errors_1Regime;
 % Standard errors of the reduced form parameters (autoregressive parameters)
 StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
 % Standard errors of the reduced form parameters (covariance matrix)
@@ -235,8 +235,8 @@ Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_
 % Beta_LK=Beta_OLS';
 % Log_LK=Likelihood_UNRESTRICTED_Error(Beta_OLS');    
 % end
-Errors=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
-Omega_LK=1/(T)*Errors'*Errors;
+Errors_2Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
+Omega_LK=1/(T)*Errors_2Regime'*Errors_2Regime;
 % Standard errors of the reduced form parameters (autoregressive parameters)
 StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
 % Standard errors of the reduced form parameters (Covariance matrix)
@@ -288,8 +288,8 @@ Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_
 
 LK_3Regime_Sampe = Log_LK;
 
-Errors=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
-Omega_LK=1/(T)*Errors'*Errors;
+Errors_3Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
+Omega_LK=1/(T)*Errors_3Regime'*Errors_3Regime;
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
 StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
@@ -342,8 +342,8 @@ Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_
 
 LK_4Regime_Sampe = Log_LK;
 
-Errors=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
-Omega_LK=1/(T)*Errors'*Errors;
+Errors_4Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
+Omega_LK=1/(T)*Errors_4Regime'*Errors_4Regime;
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
 StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
@@ -402,7 +402,6 @@ InitialValue_SVAR_Initial=[
 % ML function
 [StructuralParam_Estiamtion_MATRIX,Likelihood_MATRIX,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted_Upper',InitialValue_SVAR_Initial',options);
 
-
 StructuralParam_Estiamtion=StructuralParam_Estiamtion_MATRIX;
 LK_Estimation=Likelihood_MATRIX;
 Hessian_Estimation=Hessian_MATRIX;
@@ -411,7 +410,7 @@ SE_Estimation=diag(Hessian_Estimation^(-1)).^0.5;
 % Overidentification LR test
 LR_Test_UP = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation);
 PVarl_UP = 1-chi2cdf(2*((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation),24-StructuralParam);
- 
+
 Parameters = [ [1:StructuralParam]' StructuralParam_Estiamtion SE_Estimation]; 
 
 % Here below we define the matrices of the structural parameters with restrictions on the coefficients as described in eq. (18) of the paper. SVAR_C corresponds to the B matrix in the paper, SVAR_Q2 corresponds to
@@ -935,8 +934,7 @@ StructuralEstimationCorrected=[
         MATRICES(11,1)-MATRICES(8,1);
         MATRICES(11,2)-MATRICES(8,2);
         MATRICES(10,3)-MATRICES(7,3);
-        MATRICES(12,3)-MATRICES(9,3);
-        ];
+        MATRICES(12,3)-MATRICES(9,3);];
 % 
 OUTPUT_Table2_StructuralEstimation=[StructuralEstimationCorrected SE_Estimation];
 
@@ -1183,7 +1181,7 @@ disp('B+Q2+Q3+Q4=')
 disp(SVAR_4Regime_SE_UP)
 
 
-disp('-------------- 2 overidentification restrictions: --------------')
+disp('---- 2 overidentification restrictions: ----')
 disp('Test statistics:')
 disp(LR_Test_UP)
 disp('P-value:')
@@ -1216,11 +1214,305 @@ disp(SVAR_3Regime_SE)
 disp('B+Q2+Q3+Q4=')
 disp(SVAR_4Regime_SE)
 
-disp('---- 4 overidentification restrictions specified in eq. 19: ----')
+disp('---- 5 overidentification restrictions ----')
 disp('Test statistics:')
 disp(LR_Test_LW)
 disp('P-value:')
 disp(PVar_LW)
 
 
+
 %% Step 4: IRFs
+
+BootstrapIterations = 500;
+HorizonIRF = 60;  
+quant = [5,95]; % quantile bootstrap to build 90% confidence intervals
+
+global Sigma_boot_1Regime
+global Sigma_boot_2Regime
+global Sigma_boot_3Regime
+global Sigma_boot_4Regime
+
+for boot = 1 : BootstrapIterations
+
+    %  **** iid bootstrap ****
+    Residuals_Boot = zeros(TAll,M);
+    %Residuals_Boot(1:TB1,:) = mvnrnd(zeros(M,1),Sigma_1Regime,T1+NLags);
+    %Residuals_Boot(TB1+1:TB2,:) = mvnrnd(zeros(M,1),Sigma_2Regime,T2);
+    %Residuals_Boot(TB2+1:TB3,:) = mvnrnd(zeros(M,1),Sigma_3Regime,T3);
+    %Residuals_Boot(TB3+1:TAll,:) = mvnrnd(zeros(M,1),Sigma_2Regime,T4-NLags);
+
+    TBoot=datasample(1:T1,T1);
+    Residuals_Boot(1:TB1-NLags,:) = Errors_1Regime(TBoot,:);
+    TBoot=datasample(1:T2,T2); % resample from 1 to T2
+    Residuals_Boot(TB1+1:TB2,:) = Errors_2Regime(TBoot,:);
+    TBoot=datasample(1:T3,T3); % resample from 1 to T3
+    Residuals_Boot(TB2+1:TB3,:) = Errors_3Regime(TBoot,:);
+    TBoot=datasample(1:T4,T4-NLags); % resample from 1 to T4
+    Residuals_Boot(TB3+1:TAll,:) = Errors_4Regime(TBoot,:);
+
+    DataSet_Bootstrap=zeros(T1+NLags,M);
+    DataSet_Bootstrap(1:NLags,:)=DataSet_1Regime(1:NLags,:);                % set the first p elements equal to the original sample values
+
+        for t = 1+NLags : TB1
+            DataSet_Bootstrap(t,:) = Beta_1Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_1Regime(2:4,:) + ...
+                                     DataSet_Bootstrap(t-2,:)*Beta_1Regime(5:7,:) + ...
+                                     DataSet_Bootstrap(t-3,:)*Beta_1Regime(8:10,:) + ...
+                                     Residuals_Boot(t-NLags,:);
+        end
+        for t = TB1+1 : TB2
+            DataSet_Bootstrap(t,:) = Beta_2Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_2Regime(2:4,:) + ...
+                                     DataSet_Bootstrap(t-2,:)*Beta_2Regime(5:7,:) + ...
+                                     DataSet_Bootstrap(t-3,:)*Beta_2Regime(8:10,:) + ...
+                                     Residuals_Boot(t-NLags,:);
+        end
+        for t = TB2+1 : TB3
+            DataSet_Bootstrap(t,:) = Beta_3Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_3Regime(2:4,:) + ...
+                                     DataSet_Bootstrap(t-2,:)*Beta_3Regime(5:7,:) + ...
+                                     DataSet_Bootstrap(t-3,:)*Beta_3Regime(8:10,:) + ...
+                                     Residuals_Boot(t-NLags,:);
+        end
+        for t = TB3+1 : TAll
+            DataSet_Bootstrap(t,:) = Beta_4Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_4Regime(2:4,:) + ...
+                                     DataSet_Bootstrap(t-2,:)*Beta_4Regime(5:7,:) + ...
+                                     DataSet_Bootstrap(t-3,:)*Beta_4Regime(8:10,:) + ...
+                                     Residuals_Boot(t-NLags,:);
+        end
+
+    DataSet_Bootstrap=DataSet_Bootstrap(1+NLags:end,:);
+    
+    VAR = varm(3,3);
+    [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(1:TB1,:));
+    mP_boot_1Regime = [EstVAR_Boot.AR{1,1}; EstVAR_Boot.AR{1,2}; EstVAR_Boot.AR{1,3}];
+    Sigma_boot_1Regime = (Residuals_Boot'*Residuals_Boot)/T1;
+
+    [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB1+1:TB2,:));
+    mP_boot_2Regime = [EstVAR_Boot.AR{1,1}; EstVAR_Boot.AR{1,2}; EstVAR_Boot.AR{1,3}];
+    Sigma_boot_2Regime = (Residuals_Boot'*Residuals_Boot)/T2;
+
+    [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB2+1:TB3,:));
+    mP_boot_3Regime = [EstVAR_Boot.AR{1,1}; EstVAR_Boot.AR{1,2}; EstVAR_Boot.AR{1,3}];
+    Sigma_boot_3Regime = (Residuals_Boot'*Residuals_Boot)/T3;
+
+    [EstVAR1_Boot,EstSE1_Boot,logLikVAR1_Boot,Residuals1_Boot] = estimate(VAR,DataSet_Bootstrap(TB3+1:TAll-NLags,:));
+    mP_boot_4Regime = [EstVAR_Boot.AR{1,1}; EstVAR_Boot.AR{1,2}; EstVAR_Boot.AR{1,3}];
+    Sigma_boot_4Regime = (Residuals_Boot'*Residuals_Boot)/T4;
+
+    
+    options = optimset('MaxFunEvals',200000,'TolFun',1e-500,'MaxIter',200000,'TolX',1e-50);
+    StructuralParam_Estimation_MATRIX = [0.5; 0.5; 0; 0.5; 0.5; 0; 0.5; 0.5; 0.5; 0; 0.5; 0.5; 0.5; 0; 0.5; 0; -0.5; 0.5; 0; -0.5; 0]';
+    [StructuralParam_Estimation_Boot,Likelihood_SVAR,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted_Upper_Bootstrap',StructuralParam_Estimation_MATRIX',options);
+
+    C_Boot =[StructuralParam_Estimation_Boot(1) StructuralParam_Estimation_Boot(3) 0;
+             StructuralParam_Estimation_Boot(2) StructuralParam_Estimation_Boot(4) 0;
+             0                                  0                                  StructuralParam_Estimation_Boot(5)];
+
+    Q2_Boot=[StructuralParam_Estimation_Boot(6) 0                                  StructuralParam_Estimation_Boot(10);
+             StructuralParam_Estimation_Boot(7) StructuralParam_Estimation_Boot(9) 0;
+             StructuralParam_Estimation_Boot(8) 0                                  StructuralParam_Estimation_Boot(11)];
+
+    Q3_Boot=[0                                   0                                   StructuralParam_Estimation_Boot(14);
+             StructuralParam_Estimation_Boot(12) StructuralParam_Estimation_Boot(13) StructuralParam_Estimation_Boot(15);
+             0                                   0                                   StructuralParam_Estimation_Boot(16)];
+
+    Q4_Boot=[StructuralParam_Estimation_Boot(17) 0                                   StructuralParam_Estimation_Boot(20);
+             StructuralParam_Estimation_Boot(18) StructuralParam_Estimation_Boot(19) 0;
+             0                                   0                                   StructuralParam_Estimation_Boot(21)];
+
+
+    % Sign normalization  (recall that identification holds up to sign normalization)   
+    if C_Boot(1,1)<0
+    C_Boot(:,1)=-C_Boot(:,1);
+    end
+    if C_Boot(2,2)<0
+    C_Boot(:,2)=-C_Boot(:,2); 
+    end
+    if C_Boot(3,3)<0
+    C_Boot(:,3)=-C_Boot(:,3);
+    end
+
+    if Q2_Boot(1,1)<0
+    Q2_Boot(:,1)=-Q2_Boot(:,1);
+    end
+    if Q2_Boot(2,2)<0
+    Q2_Boot(:,2)=-Q2_Boot(:,2); 
+    end
+    if Q2_Boot(3,3)<0
+    Q2_Boot(:,3)=-Q2_Boot(:,3);
+    end
+
+    if Q3_Boot(1,1)<0
+    Q3_Boot(:,1)=-Q3_Boot(:,1);
+    end
+    if Q3_Boot(2,2)<0
+    Q3_Boot(:,2)=-Q3_Boot(:,2); 
+    end
+    if Q3_Boot(3,3)<0
+    Q3_Boot(:,3)=-Q3_Boot(:,3);
+    end
+
+    if Q4_Boot(1,1)<0
+    Q4_Boot(:,1)=-Q4_Boot(:,1);
+    end
+    if Q4_Boot(2,2)<0
+    Q4_Boot(:,2)=-Q4_Boot(:,2); 
+    end
+    if Q4_Boot(3,3)<0
+    Q4_Boot(:,3)=-Q4_Boot(:,3);
+    end
+
+    J=[eye(M) zeros(M,M*(NLags-1))];
+    CompanionMatrix_1Regime_Boot = [mP_boot_1Regime(1:3,:) mP_boot_1Regime(4:6,:) mP_boot_1Regime(7:9,:);
+                            eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
+    CompanionMatrix_2Regime_Boot = [mP_boot_2Regime(1:3,:) mP_boot_2Regime(4:6,:) mP_boot_2Regime(7:9,:);
+                            eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
+    CompanionMatrix_3Regime_Boot = [mP_boot_3Regime(1:3,:) mP_boot_3Regime(4:6,:) mP_boot_3Regime(7:9,:);
+                            eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
+    CompanionMatrix_4Regime_Boot = [mP_boot_4Regime(1:3,:) mP_boot_4Regime(4:6,:) mP_boot_4Regime(7:9,:);
+                            eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
+
+    for h = 0 : HorizonIRF
+    TETA_Boot_1Regime(:,:,h+1,boot)=J*CompanionMatrix_1Regime_Boot^h*J'*C_Boot;
+    TETA_Boot_2Regime(:,:,h+1,boot)=J*CompanionMatrix_2Regime_Boot^h*J'*(C_Boot+Q2_Boot);
+    TETA_Boot_3Regime(:,:,h+1,boot)=J*CompanionMatrix_3Regime_Boot^h*J'*(C_Boot+Q2_Boot+Q3_Boot);
+    TETA_Boot_4Regime(:,:,h+1,boot)=J*CompanionMatrix_4Regime_Boot^h*J'*(C_Boot+Q2_Boot+Q3_Boot+Q4_Boot);
+    end
+
+end   
+
+IRF_Inf_Boot_1Regime = prctile(TETA_Boot_1Regime,quant(1),4);
+IRF_Sup_Boot_1Regime = prctile(TETA_Boot_1Regime,quant(2),4);
+
+IRF_Inf_Boot_2Regime = prctile(TETA_Boot_2Regime,quant(1),4);
+IRF_Sup_Boot_2Regime = prctile(TETA_Boot_2Regime,quant(2),4);
+
+IRF_Inf_Boot_3Regime = prctile(TETA_Boot_3Regime,quant(1),4);
+IRF_Sup_Boot_3Regime = prctile(TETA_Boot_3Regime,quant(2),4);
+
+IRF_Inf_Boot_4Regime = prctile(TETA_Boot_4Regime,quant(1),4);
+IRF_Sup_Boot_4Regime = prctile(TETA_Boot_4Regime,quant(2),4);
+
+
+
+
+% ------------------------------------------------------------------------
+
+
+% All 4 Volatility Regimes in one plot (No confidence bands)
+% [1-blue 2-red 3-yellow 4-purple]
+LineWidth_IRF = 1.5;
+FontSizeIRFGraph = 14;
+HorizonIRF = 60;
+SubTitles = cell(1,3);
+
+SubTitles{1,1} = '$$\varepsilon_{UM}$$';
+SubTitles{1,2} = '$$\varepsilon_{Y}$$';
+SubTitles{1,3} = '$$\varepsilon_{UF}$$';
+
+YLabel = cell(3,1);
+YLabel{1,1} = '$$UM$$';
+YLabel{2,1} = '$$Y$$';
+YLabel{3,1} = '$$UF$$';
+
+All_IRFs = zeros(M, M, HorizonIRF+1, 4); % Dimensions: i, j, Horizon, regime
+
+for r = 1:4
+    IRF = eval(sprintf('SVAR_%dRegime_UP', r));  
+    CompanionMatrix = eval(sprintf('CompanionMatrix_%dRegime', r));
+    
+
+    J = [eye(M), zeros(M, M*(NLags-1))];
+
+    for h = 0:HorizonIRF
+        All_IRFs(:,:,h+1,r) = J * CompanionMatrix^h * J' * IRF;
+    end
+end
+
+figure(5);
+sgtitle('Structural IRFs for All Regimes');
+
+index = 1;
+x = 1:HorizonIRF + 1;
+colors = lines(4);
+
+for i = 1:3
+    for j = 1:3
+        subplot(3, 3, index);
+        hold on;
+        for r = 1:4
+            IRF = squeeze(All_IRFs(i, j, :, r));
+            plot(x, IRF, 'Color', colors(r, :), 'LineWidth', LineWidth_IRF, 'DisplayName', sprintf('Regime %d', r));
+        end
+        plot(zeros(HorizonIRF + 1, 1), 'k', 'LineWidth', 1);
+
+        ylabel(YLabel{i,1}, 'Interpreter', 'latex');
+        title(SubTitles{1,j}, 'Interpreter', 'latex');
+        set(gca, 'FontSize', FontSizeIRFGraph);
+        axis tight;
+
+        if index == 1
+            legend('show', 'Location', 'best');
+        end
+        index = index + 1;
+    end
+end
+
+
+% ---------------------------------------------------------------------------------------------------------------------------
+
+
+% 4 Regime-specific graphs
+for r = 1:4
+
+LineWidth_IRF = 1.5;
+FontSizeIRFGraph = 14;
+HorizonIRF = 60;
+SubTitles=cell(1,3);
+SubTitles{1,1}='$$\varepsilon_{UM}$$';
+SubTitles{1,2}='$$\varepsilon_{Y}$$';
+SubTitles{1,3}='$$\varepsilon_{UF}$$';
+
+YLabel=cell(3,1);
+YLabel{1,1}='$$UM$$';
+YLabel{2,1}='$$Y$$';
+YLabel{3,1}='$$UF$$';
+
+index = 1;
+
+C_IRF = eval(sprintf('SVAR_%dRegime_UP', r));                               % instantaneous impact at h=0
+C_SE = eval(sprintf('SVAR_%dRegime_SE_UP', r));
+CompanionMatrix = eval(sprintf('CompanionMatrix_%dRegime', r));
+IRF_Inf_Boot = eval(sprintf('IRF_Inf_Boot_%dRegime', r));
+IRF_Sup_Boot = eval(sprintf('IRF_Sup_Boot_%dRegime', r));
+
+J=[eye(M) zeros(M,M*(NLags-1))];                                            % selection matrix J used in IRF computation 
+
+for h = 0 : HorizonIRF
+    TETA(:,:,h+1)=J*CompanionMatrix^h*J'*C_IRF;
+end
+
+for i = 1:3
+    for j = 1:3
+    IRF = squeeze(TETA(i,j,:));
+    IRF_Sup = squeeze(IRF_Sup_Boot(i,j,:));
+    IRF_Inf = squeeze(IRF_Inf_Boot(i,j,:));
+
+    figure(r)
+    sgtitle(sprintf('Structural IRFs for Regime %d', r))
+    subplot(3,3,index)
+    x = 1:1:HorizonIRF+1;
+    plot(x, IRF,'Color',[0 0.4470 0.7410], 'LineWidth',LineWidth_IRF);
+    hold all
+    plot(IRF_Sup,'--r', 'LineWidth',LineWidth_IRF);
+    plot(IRF_Inf,'--r', 'LineWidth',LineWidth_IRF);
+    plot(zeros(HorizonIRF+1,1),'k','LineWidth',1);
+    ylabel(YLabel{i,1},'interpreter','latex');
+    title(SubTitles{1,j},'interpreter','latex');
+    set(gca,'FontSize',FontSizeIRFGraph);
+    axis tight
+    index=index+1;
+
+    end
+end
+
+end
