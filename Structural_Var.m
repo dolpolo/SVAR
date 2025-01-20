@@ -1563,27 +1563,29 @@ end
 
 for i = 1:3
     for j = 1:3
-    IRF = squeeze(TETA(i,j,:));
-    IRF_Sup = squeeze(IRF_Sup_Boot(i,j,:));
-    IRF_Inf = squeeze(IRF_Inf_Boot(i,j,:));
+        IRF = squeeze(TETA(i,j,:));
+        IRF_Sup = squeeze(IRF_Sup_Boot(i,j,:));
+        IRF_Inf = squeeze(IRF_Inf_Boot(i,j,:));
 
-    figure(r)
-    sgtitle(sprintf('Structural IRFs for Regime %d', r))
-    subplot(3,3,index)
-    x = 1:1:HorizonIRF+1;
-    plot(x, IRF,'Color',[0 0.4470 0.7410], 'LineWidth',LineWidth_IRF);
-    hold all
-    plot(IRF_Sup,'--r', 'LineWidth',LineWidth_IRF);
-    plot(IRF_Inf,'--r', 'LineWidth',LineWidth_IRF);
-    plot(zeros(HorizonIRF+1,1),'k','LineWidth',1);
-    ylabel(YLabel{i,1},'interpreter','latex');
-    title(SubTitles{1,j},'interpreter','latex');
-    set(gca,'FontSize',FontSizeIRFGraph);
-    axis tight
-    
-    index=index+1;
+        figure(r)
+        sgtitle(sprintf('Structural IRFs for Regime %d', r))
+        subplot(3,3,index)
+        x = 1:1:HorizonIRF+1;
 
+        plot(x, IRF, 'LineWidth', LineWidth_IRF);
+        hold all
+        fill([x, fliplr(x)], [IRF_Sup', fliplr(IRF_Inf')], ...
+            [0.1, 0.6, 0.9], 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+
+        plot(zeros(HorizonIRF+1, 1), 'k', 'LineWidth', 1);
+        ylabel(YLabel{i, 1}, 'Interpreter', 'latex');
+        title(SubTitles{1, j}, 'Interpreter', 'latex');
+        set(gca, 'FontSize', FontSizeIRFGraph);
+        axis tight
+
+        index = index + 1;
     end
 end
+
 
 end
