@@ -378,6 +378,7 @@ LK_4Regime_Sampe = Log_LK;
 
 Errors_4Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
 Omega_LK=1/(T)*Errors_4Regime'*Errors_4Regime;
+Rho_LK = corrcov(Omega_LK);
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
 StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
@@ -1367,24 +1368,25 @@ for boot = 1 : BootstrapIterations
 
     
     options = optimset('MaxFunEvals',200000,'TolFun',1e-500,'MaxIter',200000,'TolX',1e-50);
-    StructuralParam_Estimation_MATRIX = [0.5; 0.5; 0; 0.5; 0.5; 0; 0.5; 0.5; 0.5; 0; 0.5; 0.5; 0.5; 0; 0.5; 0; -0.5; 0.5; 0; -0.5; 0]';
-    [StructuralParam_Estimation_Boot,Likelihood_SVAR,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted_Upper_Bootstrap',StructuralParam_Estimation_MATRIX',options);
+    BootStructuralParam = 20;
+    Initial_Structural_Boot=0.5*ones(BootStructuralParam,1);
+    [StructuralParam_Estimation_Boot,Likelihood_SVAR,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted_Bootstrap',Initial_Structural_Boot',options);
 
-    C_Boot =[StructuralParam_Estimation_Boot(1) StructuralParam_Estimation_Boot(3) 0;
-             StructuralParam_Estimation_Boot(2) StructuralParam_Estimation_Boot(4) 0;
-             0                                  0                                  StructuralParam_Estimation_Boot(5)];
+    C_Boot =[StructuralParam_Estimation_Boot(1) 0                                  0;
+             StructuralParam_Estimation_Boot(2) StructuralParam_Estimation_Boot(3) 0;
+             0                                  0                                  StructuralParam_Estimation_Boot(4)];
 
-    Q2_Boot=[StructuralParam_Estimation_Boot(6) 0                                  StructuralParam_Estimation_Boot(10);
-             StructuralParam_Estimation_Boot(7) StructuralParam_Estimation_Boot(9) 0;
-             StructuralParam_Estimation_Boot(8) 0                                  StructuralParam_Estimation_Boot(11)];
+    Q2_Boot=[StructuralParam_Estimation_Boot(5) 0                                  StructuralParam_Estimation_Boot(8);
+             StructuralParam_Estimation_Boot(6) StructuralParam_Estimation_Boot(7) 0;
+             0                                  0                                  StructuralParam_Estimation_Boot(9)];
 
-    Q3_Boot=[0                                   0                                   StructuralParam_Estimation_Boot(14);
-             StructuralParam_Estimation_Boot(12) StructuralParam_Estimation_Boot(13) StructuralParam_Estimation_Boot(15);
-             0                                   0                                   StructuralParam_Estimation_Boot(16)];
+    Q3_Boot=[0                                   0                                   StructuralParam_Estimation_Boot(12);
+             StructuralParam_Estimation_Boot(10) StructuralParam_Estimation_Boot(11) StructuralParam_Estimation_Boot(13);
+             0                                   0                                   StructuralParam_Estimation_Boot(14)];
 
-    Q4_Boot=[StructuralParam_Estimation_Boot(17) 0                                   StructuralParam_Estimation_Boot(20);
-             StructuralParam_Estimation_Boot(18) StructuralParam_Estimation_Boot(19) 0;
-             0                                   0                                   StructuralParam_Estimation_Boot(21)];
+    Q4_Boot=[StructuralParam_Estimation_Boot(15) 0                                   StructuralParam_Estimation_Boot(18);
+             StructuralParam_Estimation_Boot(16) StructuralParam_Estimation_Boot(17) StructuralParam_Estimation_Boot(19);
+             0                                   0                                   StructuralParam_Estimation_Boot(20)];
 
     SVAR_1Regime_Boot = C_Boot;
     SVAR_2Regime_Boot = C_Boot + Q2_Boot;
@@ -1488,7 +1490,7 @@ YLabel{3,1} = '$$UF$$';
 All_IRFs = zeros(M, M, HorizonIRF+1, 4); % Dimensions: i, j, Horizon, regime
 
 for r = 1:4
-    IRF = eval(sprintf('SVAR_%dRegime_UP', r));  
+    IRF = eval(sprintf('SVAR_%dRegime', r));  
     CompanionMatrix = eval(sprintf('CompanionMatrix_%dRegime', r));
     
     J = [eye(M), zeros(M, M*(NLags-1))];
@@ -1548,8 +1550,7 @@ YLabel{3,1}='$$UF$$';
 
 index = 1;
 
-C_IRF = eval(sprintf('SVAR_%dRegime_UP', r));                               % instantaneous impact at h=0
-C_SE = eval(sprintf('SVAR_%dRegime_SE_UP', r));
+C_IRF = eval(sprintf('SVAR_%dRegime', r));                               % instantaneous impact at h=0
 CompanionMatrix = eval(sprintf('CompanionMatrix_%dRegime', r));
 IRF_Inf_Boot = eval(sprintf('IRF_Inf_Boot_%dRegime', r));
 IRF_Sup_Boot = eval(sprintf('IRF_Sup_Boot_%dRegime', r));
