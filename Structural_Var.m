@@ -4,6 +4,7 @@
 % Topic 2
 
 clear
+clear global
 clc
 
 addpath Functions
@@ -41,11 +42,10 @@ global CommonPI
 % 10 UM12   US macroeconomic uncertainty measure 12-month ahead
 % // uncertainty measures taken from Sydney Ludvigson website
 
-%% General data
-NLags = 3; % Number of lags of the reduced form VARs
+NLags = 4; % Number of lags of the reduced form VARs
 options = optimset('MaxFunEvals',200000,'TolFun',1e-1000,'MaxIter',200000,'TolX',1e-1000);   
 
-LimitTEST = 1.64; %
+LimitTEST = 1.64;
 LimitTEST_Apha = 0.1;
 
 % Graphs settings
@@ -59,9 +59,9 @@ HorizonIRF = 60;
 DataSet = readmatrix('Topic 2 Data.xlsx');
 
 % Break dates
-TB1=284; 
-TB2=569;
-TB3=716;
+TB1=284; % 1984 - M4
+TB2=569; % 2007 - M12
+TB3=715; % 2020 - M2
 
 %% Data Set
 DataSet = DataSet(2:end-4, [3, 5, 8]);
@@ -91,8 +91,13 @@ TAll = size(DataSet,1)-NLags;
 % Whole sample
 
 T=TAll;
-VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1) DataSet(NLags:end-1,:) DataSet(NLags-1:end-2,:) DataSet(NLags-2:end-3,:)];
+
 VAR_Variables_Y=DataSet(NLags+1:end,:);
+VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1)];
+for i = 1 : NLags
+Lag = DataSet(NLags+1-i:end-i,:);
+VAR_Variables_X = [VAR_Variables_X Lag];
+end
 
 DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
 DuplicationMatrix(1,1)=1;
@@ -128,7 +133,7 @@ Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_
 % Log_LK=Likelihood_UNRESTRICTED_Error(Beta_OLS');    
 % end
 
-Log_LK_whole = Log_LK
+Log_LK_whole = Log_LK;
 % Mdl = varm(M,NLags);
 % EstMdl = estimate(Mdl,VAR_Variables_Y);
 % Sigma_eta = EstMdl.Covariance;
@@ -156,8 +161,13 @@ StandardErrors_Omega_M=[StandardErrors_Omega(1) StandardErrors_Omega(2) Standard
 
 T=T1;
 DataSet=DataSet_1Regime;
-VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1) DataSet(NLags:end-1,:) DataSet(NLags-1:end-2,:) DataSet(NLags-2:end-3,:)];
+
 VAR_Variables_Y=DataSet(NLags+1:end,:);
+VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1)];
+for i = 1 : NLags
+Lag = DataSet(NLags+1-i:end-i,:);
+VAR_Variables_X = [VAR_Variables_X Lag];
+end
 
 DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
 DuplicationMatrix(1,1)=1;
@@ -184,6 +194,8 @@ LK_1Regime_Sampe = Log_LK;
 
 Errors_1Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
 Omega_LK=1/(T)*Errors_1Regime'*Errors_1Regime;
+Rho_LK = corrcov(Omega_LK);
+
 % Standard errors of the reduced form parameters (autoregressive parameters)
 StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
 % Standard errors of the reduced form parameters (covariance matrix)
@@ -192,11 +204,13 @@ StandardErrors_Omega_M=[StandardErrors_Omega(1) StandardErrors_Omega(2) Standard
                                 StandardErrors_Omega(2) StandardErrors_Omega(4) StandardErrors_Omega(5);
                                 StandardErrors_Omega(3) StandardErrors_Omega(5) StandardErrors_Omega(6)];
 
+
+
 SE_Sigma_1Regime=StandardErrors_Omega;
 StandardErrorSigma_1Regime=(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
 
 CompanionMatrix_1Regime=[Beta_LK(:,2:end);
-    eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
+                         eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
                             
 Omega_1Regime=[Omega_LK;StandardErrors_Omega_M];
 Beta_1Regime=[Beta_LK'; StandardErrors_BETA];
@@ -212,8 +226,13 @@ LK_1Regime=[-Log_LK];
 
 T=T2;
 DataSet=DataSet_2Regime;
-VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1) DataSet(NLags:end-1,:) DataSet(NLags-1:end-2,:) DataSet(NLags-2:end-3,:)];
+
 VAR_Variables_Y=DataSet(NLags+1:end,:);
+VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1)];
+for i = 1 : NLags
+Lag = DataSet(NLags+1-i:end-i,:);
+VAR_Variables_X = [VAR_Variables_X Lag];
+end
 
 DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
 DuplicationMatrix(1,1)=1;
@@ -235,8 +254,11 @@ Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_
 % Beta_LK=Beta_OLS';
 % Log_LK=Likelihood_UNRESTRICTED_Error(Beta_OLS');    
 % end
+
 Errors_2Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
 Omega_LK=1/(T)*Errors_2Regime'*Errors_2Regime;
+Rho_LK = corrcov(Omega_LK);
+
 % Standard errors of the reduced form parameters (autoregressive parameters)
 StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
 % Standard errors of the reduced form parameters (Covariance matrix)
@@ -244,13 +266,14 @@ StandardErrors_Omega=sqrt(diag(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)'))));
 StandardErrors_Omega_M=[StandardErrors_Omega(1) StandardErrors_Omega(2) StandardErrors_Omega(3);
                                 StandardErrors_Omega(2) StandardErrors_Omega(4) StandardErrors_Omega(5);
                                 StandardErrors_Omega(3) StandardErrors_Omega(5) StandardErrors_Omega(6)];
+
 LK_2Regime_Sampe = Log_LK;
                             
 SE_Sigma_2Regime=StandardErrors_Omega;
 StandardErrorSigma_2Regime=(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
 
 CompanionMatrix_2Regime=[Beta_LK(:,2:end);
-    eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
+                         eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
                              
 Omega_2Regime=[Omega_LK;StandardErrors_Omega_M];
 Beta_2Regime=[Beta_LK'; StandardErrors_BETA];
@@ -266,8 +289,13 @@ LK_2Regime=[-Log_LK];
 
 T=T3;
 DataSet=DataSet_3Regime;
-VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1) DataSet(NLags:end-1,:) DataSet(NLags-1:end-2,:) DataSet(NLags-2:end-3,:)];
+
 VAR_Variables_Y=DataSet(NLags+1:end,:);
+VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1)];
+for i = 1 : NLags
+Lag = DataSet(NLags+1-i:end-i,:);
+VAR_Variables_X = [VAR_Variables_X Lag];
+end
 
 DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
 DuplicationMatrix(1,1)=1;
@@ -290,6 +318,7 @@ LK_3Regime_Sampe = Log_LK;
 
 Errors_3Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
 Omega_LK=1/(T)*Errors_3Regime'*Errors_3Regime;
+Rho_LK = corrcov(Omega_LK);
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
 StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
@@ -304,7 +333,7 @@ SE_Sigma_3Regime=StandardErrors_Omega;
 StandardErrorSigma_3Regime=(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
                             
 CompanionMatrix_3Regime=[Beta_LK(:,2:end);
-    eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
+                         eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
                                        
 Omega_3Regime=[Omega_LK;StandardErrors_Omega_M];
 Beta_3Regime=[Beta_LK'; StandardErrors_BETA];
@@ -320,8 +349,13 @@ LK_3Regime=[-Log_LK];
 
 T=T4;
 DataSet=DataSet_4Regime;
-VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1) DataSet(NLags:end-1,:) DataSet(NLags-1:end-2,:) DataSet(NLags-2:end-3,:)];
+
 VAR_Variables_Y=DataSet(NLags+1:end,:);
+VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1)];
+for i = 1 : NLags
+Lag = DataSet(NLags+1-i:end-i,:);
+VAR_Variables_X = [VAR_Variables_X Lag];
+end
 
 DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
 DuplicationMatrix(1,1)=1;
@@ -358,7 +392,7 @@ SE_Sigma_4Regime=StandardErrors_Omega;
 StandardErrorSigma_4Regime=(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
                             
 CompanionMatrix_4Regime=[Beta_LK(:,2:end);
-    eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
+                         eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
                                        
 Omega_4Regime=[Omega_LK;StandardErrors_Omega_M];
 Beta_4Regime=[Beta_LK'; StandardErrors_BETA];
@@ -371,7 +405,7 @@ LK_4Regime=[-Log_LK];
 %% Step 3: Structural Parameters Estimation
 
 % Upper Panel of Table 2
-StructuralParam=21; 
+StructuralParam=22; 
 InitialValue_SVAR_Initial=[
 0.5;
 0.5;
@@ -396,7 +430,8 @@ InitialValue_SVAR_Initial=[
 0.5;
 0;
 -0.5;
-0]';
+0
+0.5]';
 
 % InitialValue_SVAR_Initial = [0.0421063462998413;-0.0117405094668808;-0.0448104973829488;0.0368304377782917;-0.0157488924466030;0.00580239808317136;-0.0218826768384612;0.0446235881977053;0.0253441293699309;0.0590524902571742;0.0251946247347187;0.0113867188814942;-0.0446119691076574;0.0448659977279010;0.0428022339672646;0.00907094402960949];
 % ML function
@@ -409,7 +444,7 @@ SE_Estimation=diag(Hessian_Estimation^(-1)).^0.5;
 
 % Overidentification LR test
 LR_Test_UP = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation);
-PVarl_UP = 1-chi2cdf(2*((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation),24-StructuralParam);
+PVarl_UP = 1 - chi2cdf((LR_Test_UP),24-StructuralParam);
 
 Parameters = [ [1:StructuralParam]' StructuralParam_Estiamtion SE_Estimation]; 
 
@@ -429,15 +464,15 @@ SVAR_Q3=[0                              0                              Structura
          0                              0                              StructuralParam_Estiamtion(16)];
 
 SVAR_Q4=[StructuralParam_Estiamtion(17) 0                              StructuralParam_Estiamtion(20);
-         StructuralParam_Estiamtion(18) StructuralParam_Estiamtion(19) 0;
-         0                              0                              StructuralParam_Estiamtion(21)];
+         StructuralParam_Estiamtion(18) StructuralParam_Estiamtion(19) StructuralParam_Estiamtion(21);
+         0                              0                              StructuralParam_Estiamtion(22)];
               
 SVAR_1Regime=SVAR_C; % B
 SVAR_2Regime=SVAR_C+SVAR_Q2;   % B+Q2
 SVAR_3Regime=SVAR_C+SVAR_Q2+SVAR_Q3;  % B+Q2+Q3
 SVAR_4Regime=SVAR_C+SVAR_Q2+SVAR_Q3+SVAR_Q4;  % B+Q2+Q3+Q4
 
-% Flip the sign if the paraeter on the main diagonal is negative
+% Flip the sign if the parameter on the main diagonal is negative
 
 	if SVAR_1Regime(1,1)<0
     SVAR_1Regime(:,1)=-SVAR_1Regime(:,1);
@@ -524,7 +559,8 @@ HSelection(28,17)=1;
 HSelection(29,18)=1;
 HSelection(32,19)=1;
 HSelection(34,20)=1;
-HSelection(36,21)=1;
+HSelection(35,21)=1;
+HSelection(36,22)=1;
 
 Jacobian= RankMatrix*HSelection;
 
@@ -551,9 +587,10 @@ StructuralEstimationCorrected=[
         MATRICES(8,3);
         MATRICES(9,3)-MATRICES(6,3);
         MATRICES(10,1)-MATRICES(7,1);
+        MATRICES(10,3)-MATRICES(7,3);
         MATRICES(11,1)-MATRICES(8,1);
         MATRICES(11,2)-MATRICES(8,2);
-        MATRICES(10,3)-MATRICES(7,3);
+        MATRICES(11,3)-MATRICES(8,3);
         MATRICES(12,3)-MATRICES(9,3);
         ];
 % 
@@ -571,7 +608,7 @@ j=6;
 index=1;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -583,7 +620,7 @@ j=7;
 index=2;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -595,7 +632,7 @@ j=9;
 index=3;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -607,7 +644,7 @@ j=11;
 index=4;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -647,7 +684,7 @@ j=14;
 index=7;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -685,7 +722,7 @@ SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j k],[i j k])*gradie
 i=2;
 j=7;
 k=12;
-s= 18;
+s=18;
 index=10;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
@@ -701,7 +738,7 @@ SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j k s],[i j k s])*gr
 i=4;
 j=9;
 k=13;
-s= 19;
+s=19;
 index=11;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
@@ -728,11 +765,23 @@ gradient_sigma_est=subs(gradient_sigma,[x y z],[first_par second_par third_par])
 gradient_sigma_Matrix=(double(gradient_sigma_est))';    
 SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j k],[i j k])*gradient_sigma_Matrix').^0.5);
 
+i=15;
+j=21;
+index=13;
+first_par = OUTPUT_Table2_StructuralEstimation(i,1);
+second_par = OUTPUT_Table2_StructuralEstimation(j,1);
+syms x y
+f = x + y;
+gradient_sigma=gradient(f, [x, y]);
+gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
+gradient_sigma_Matrix=(double(gradient_sigma_est))';    
+SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j],[i j])*gradient_sigma_Matrix').^0.5);
+
 i=5;
 j=11;
 k=16;
-s= 21;
-index=12;
+s=22;
+index=14;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
 third_par = OUTPUT_Table2_StructuralEstimation(k,1);
@@ -752,17 +801,17 @@ OUTPUT_Table2_SE_Analytic = [SE_ANALYTIC(1)  SE_ANALYTIC(3)  0;
                              SE_ANALYTIC(2)  SE_ANALYTIC(4)  0;
                              0               0               SE_ANALYTIC(5);
 
-                             SE_ANALYTIC(21) SE_ANALYTIC(3)  SE_ANALYTIC(10);
-                             SE_ANALYTIC(22) SE_ANALYTIC(23) 0;
-                             SE_ANALYTIC(8)  0               SE_ANALYTIC(24);   
+                             SE_ANALYTIC(23) SE_ANALYTIC(3)  SE_ANALYTIC(10);
+                             SE_ANALYTIC(24) SE_ANALYTIC(25) 0;
+                             SE_ANALYTIC(8)  0               SE_ANALYTIC(26);   
 
-                             SE_ANALYTIC(21) SE_ANALYTIC(3)  SE_ANALYTIC(27);
-                             SE_ANALYTIC(25) SE_ANALYTIC(26) SE_ANALYTIC(15);
-                             SE_ANALYTIC(8)  0               SE_ANALYTIC(28);
+                             SE_ANALYTIC(23) SE_ANALYTIC(3)  SE_ANALYTIC(29);
+                             SE_ANALYTIC(27) SE_ANALYTIC(28) SE_ANALYTIC(15);
+                             SE_ANALYTIC(8)  0               SE_ANALYTIC(30);
 
-                             SE_ANALYTIC(29) SE_ANALYTIC(3)  SE_ANALYTIC(32);
-                             SE_ANALYTIC(30) SE_ANALYTIC(31) SE_ANALYTIC(15);
-                             SE_ANALYTIC(8)  0               SE_ANALYTIC(33);
+                             SE_ANALYTIC(31) SE_ANALYTIC(3)  SE_ANALYTIC(34);
+                             SE_ANALYTIC(32) SE_ANALYTIC(33) SE_ANALYTIC(35);
+                             SE_ANALYTIC(8)  0               SE_ANALYTIC(36);
                              ];
 
 SVAR_1Regime_SE_UP = OUTPUT_Table2_SE_Analytic(1:3,:);
@@ -777,7 +826,7 @@ SVAR_4Regime_UP = SVAR_4Regime;
 
 
 %%  Lower Panel of Table 2
-StructuralParam=19; 
+StructuralParam=20; 
 InitialValue_SVAR_Initial=0.5*ones(StructuralParam,1);
 
 % ML function
@@ -790,8 +839,8 @@ Hessian_Estimation=Hessian_MATRIX;
 SE_Estimation=diag(Hessian_Estimation^(-1)).^0.5;
 
 % Overidentification LR test
-LR_Test_LW = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation)
-PVar_LW = 1-chi2cdf(2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation),24-StructuralParam);
+LR_Test_LW = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation);
+PVar_LW = 1 - chi2cdf(LR_Test_LW,24-StructuralParam);
  
 Parameters = [ [1:StructuralParam]' StructuralParam_Estiamtion' SE_Estimation]; 
 
@@ -811,8 +860,8 @@ SVAR_Q3=[0                              0                              Structura
          0                              0                              StructuralParam_Estiamtion(14)];
 
 SVAR_Q4=[StructuralParam_Estiamtion(15) 0                              StructuralParam_Estiamtion(18);
-         StructuralParam_Estiamtion(16) StructuralParam_Estiamtion(17) 0;
-         0                              0                              StructuralParam_Estiamtion(19)];
+         StructuralParam_Estiamtion(16) StructuralParam_Estiamtion(17) StructuralParam_Estiamtion(19);
+         0                              0                              StructuralParam_Estiamtion(20)];
               
 SVAR_1Regime=SVAR_C; % B
 SVAR_2Regime=SVAR_C+SVAR_Q2;   % B+Q2
@@ -906,7 +955,8 @@ HSelection(28,15)=1;
 HSelection(29,16)=1;
 HSelection(32,17)=1;
 HSelection(34,18)=1;
-HSelection(36,19)=1;
+HSelection(35,19)=1;
+HSelection(36,20)=1;
 
 Jacobian= RankMatrix*HSelection;
 
@@ -931,9 +981,10 @@ StructuralEstimationCorrected=[
         MATRICES(8,3);
         MATRICES(9,3)-MATRICES(6,3);
         MATRICES(10,1)-MATRICES(7,1);
+        MATRICES(10,3)-MATRICES(7,3);
         MATRICES(11,1)-MATRICES(8,1);
         MATRICES(11,2)-MATRICES(8,2);
-        MATRICES(10,3)-MATRICES(7,3);
+        MATRICES(11,3)-MATRICES(8,3);
         MATRICES(12,3)-MATRICES(9,3);];
 % 
 OUTPUT_Table2_StructuralEstimation=[StructuralEstimationCorrected SE_Estimation];
@@ -950,7 +1001,7 @@ j=5;
 index=1;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -962,7 +1013,7 @@ j=6;
 index=2;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -974,7 +1025,7 @@ j=7;
 index=3;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -986,7 +1037,7 @@ j=9;
 index=4;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -1026,7 +1077,7 @@ j=12;
 index=7;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
-syms x y z
+syms x y
 f = x + y;
 gradient_sigma=gradient(f, [x, y]);
 gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
@@ -1064,7 +1115,7 @@ SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j k],[i j k])*gradie
 i=2;
 j=6;
 k=10;
-s= 16;
+s=16;
 index=10;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
@@ -1080,7 +1131,7 @@ SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j k s],[i j k s])*gr
 i=3;
 j=7;
 k=11;
-s= 17;
+s=17;
 index=11;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
@@ -1096,7 +1147,7 @@ SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j k s],[i j k s])*gr
 i=8;
 j=12;
 k=18;
-index=9;
+index=12;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
 third_par = OUTPUT_Table2_StructuralEstimation(k,1);
@@ -1107,11 +1158,23 @@ gradient_sigma_est=subs(gradient_sigma,[x y z],[first_par second_par third_par])
 gradient_sigma_Matrix=(double(gradient_sigma_est))';    
 SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j k],[i j k])*gradient_sigma_Matrix').^0.5);
 
+i=13;
+j=19;
+index=13;
+first_par = OUTPUT_Table2_StructuralEstimation(i,1);
+second_par = OUTPUT_Table2_StructuralEstimation(j,1);
+syms x y
+f = x + y;
+gradient_sigma=gradient(f, [x, y]);
+gradient_sigma_est=subs(gradient_sigma,[x y],[first_par second_par]);
+gradient_sigma_Matrix=(double(gradient_sigma_est))';    
+SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j],[i j])*gradient_sigma_Matrix').^0.5);
+
 i=4;
 j=9;
 k=14;
-s= 19;
-index=12;
+s=20;
+index=14;
 first_par = OUTPUT_Table2_StructuralEstimation(i,1);
 second_par = OUTPUT_Table2_StructuralEstimation(j,1);
 third_par = OUTPUT_Table2_StructuralEstimation(k,1);
@@ -1131,17 +1194,17 @@ OUTPUT_Table2_SE_Analytic = [SE_ANALYTIC(1)  0               0;
                              SE_ANALYTIC(2)  SE_ANALYTIC(3)  0;
                              0               0               SE_ANALYTIC(4);
 
-                             SE_ANALYTIC(19) 0               SE_ANALYTIC(8);
-                             SE_ANALYTIC(20) SE_ANALYTIC(21) 0;
-                             0               0               SE_ANALYTIC(22);   
+                             SE_ANALYTIC(21) 0               SE_ANALYTIC(8);
+                             SE_ANALYTIC(22) SE_ANALYTIC(23) 0;
+                             0               0               SE_ANALYTIC(24);   
 
-                             SE_ANALYTIC(19) 0               SE_ANALYTIC(25);
-                             SE_ANALYTIC(23) SE_ANALYTIC(24) SE_ANALYTIC(13);
-                             0               0               SE_ANALYTIC(26);
+                             SE_ANALYTIC(21) 0               SE_ANALYTIC(27);
+                             SE_ANALYTIC(25) SE_ANALYTIC(26) SE_ANALYTIC(13);
+                             0               0               SE_ANALYTIC(28);
 
-                             SE_ANALYTIC(27) 0               SE_ANALYTIC(30);
-                             SE_ANALYTIC(28) SE_ANALYTIC(29) SE_ANALYTIC(13);
-                             0               0               SE_ANALYTIC(31);
+                             SE_ANALYTIC(29) 0               SE_ANALYTIC(32);
+                             SE_ANALYTIC(30) SE_ANALYTIC(31) SE_ANALYTIC(33);
+                             0               0               SE_ANALYTIC(34);
                              ];
 
 SVAR_1Regime_SE = OUTPUT_Table2_SE_Analytic(1:3,:);
@@ -1236,20 +1299,20 @@ global Sigma_boot_4Regime
 for boot = 1 : BootstrapIterations
 
     %  **** iid bootstrap ****
-    Residuals_Boot = zeros(TAll,M);
+    %Residuals_Boot = zeros(TAll-NLags,M);
     %Residuals_Boot(1:TB1,:) = mvnrnd(zeros(M,1),Sigma_1Regime,T1+NLags);
     %Residuals_Boot(TB1+1:TB2,:) = mvnrnd(zeros(M,1),Sigma_2Regime,T2);
     %Residuals_Boot(TB2+1:TB3,:) = mvnrnd(zeros(M,1),Sigma_3Regime,T3);
-    %Residuals_Boot(TB3+1:TAll,:) = mvnrnd(zeros(M,1),Sigma_2Regime,T4-NLags);
+    %Residuals_Boot(TB3+1:TAll,:) = mvnrnd(zeros(M,1),Sigma_4Regime,T4-NLags);
 
     TBoot=datasample(1:T1,T1);
     Residuals_Boot(1:TB1-NLags,:) = Errors_1Regime(TBoot,:);
-    TBoot=datasample(1:T2,T2); % resample from 1 to T2
-    Residuals_Boot(TB1+1:TB2,:) = Errors_2Regime(TBoot,:);
-    TBoot=datasample(1:T3,T3); % resample from 1 to T3
-    Residuals_Boot(TB2+1:TB3,:) = Errors_3Regime(TBoot,:);
-    TBoot=datasample(1:T4,T4-NLags); % resample from 1 to T4
-    Residuals_Boot(TB3+1:TAll,:) = Errors_4Regime(TBoot,:);
+    TBoot=datasample(1:T2,T2);
+    Residuals_Boot(TB1-NLags+1:TB2-NLags,:) = Errors_2Regime(TBoot,:);
+    TBoot=datasample(1:T3,T3);
+    Residuals_Boot(TB2-NLags+1:TB3-NLags,:) = Errors_3Regime(TBoot,:);
+    TBoot=datasample(1:T4,T4);
+    Residuals_Boot(TB3-NLags+1:TAll,:) = Errors_4Regime(TBoot,:);
 
     DataSet_Bootstrap=zeros(T1+NLags,M);
     DataSet_Bootstrap(1:NLags,:)=DataSet_1Regime(1:NLags,:);                % set the first p elements equal to the original sample values
@@ -1258,44 +1321,48 @@ for boot = 1 : BootstrapIterations
             DataSet_Bootstrap(t,:) = Beta_1Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_1Regime(2:4,:) + ...
                                      DataSet_Bootstrap(t-2,:)*Beta_1Regime(5:7,:) + ...
                                      DataSet_Bootstrap(t-3,:)*Beta_1Regime(8:10,:) + ...
+                                     DataSet_Bootstrap(t-4,:)*Beta_1Regime(11:13,:) + ...
                                      Residuals_Boot(t-NLags,:);
         end
         for t = TB1+1 : TB2
             DataSet_Bootstrap(t,:) = Beta_2Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_2Regime(2:4,:) + ...
                                      DataSet_Bootstrap(t-2,:)*Beta_2Regime(5:7,:) + ...
                                      DataSet_Bootstrap(t-3,:)*Beta_2Regime(8:10,:) + ...
+                                     DataSet_Bootstrap(t-4,:)*Beta_2Regime(11:13,:) + ...
                                      Residuals_Boot(t-NLags,:);
         end
         for t = TB2+1 : TB3
             DataSet_Bootstrap(t,:) = Beta_3Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_3Regime(2:4,:) + ...
                                      DataSet_Bootstrap(t-2,:)*Beta_3Regime(5:7,:) + ...
                                      DataSet_Bootstrap(t-3,:)*Beta_3Regime(8:10,:) + ...
+                                     DataSet_Bootstrap(t-4,:)*Beta_3Regime(11:13,:) + ...
                                      Residuals_Boot(t-NLags,:);
         end
         for t = TB3+1 : TAll
             DataSet_Bootstrap(t,:) = Beta_4Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_4Regime(2:4,:) + ...
                                      DataSet_Bootstrap(t-2,:)*Beta_4Regime(5:7,:) + ...
                                      DataSet_Bootstrap(t-3,:)*Beta_4Regime(8:10,:) + ...
+                                     DataSet_Bootstrap(t-4,:)*Beta_4Regime(11:13,:) + ...
                                      Residuals_Boot(t-NLags,:);
         end
 
     DataSet_Bootstrap=DataSet_Bootstrap(1+NLags:end,:);
     
-    VAR = varm(3,3);
+    VAR = varm(M,NLags);
     [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(1:TB1,:));
-    mP_boot_1Regime = [EstVAR_Boot.AR{1,1}; EstVAR_Boot.AR{1,2}; EstVAR_Boot.AR{1,3}];
+    mP_boot_1Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
     Sigma_boot_1Regime = (Residuals_Boot'*Residuals_Boot)/T1;
 
     [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB1+1:TB2,:));
-    mP_boot_2Regime = [EstVAR_Boot.AR{1,1}; EstVAR_Boot.AR{1,2}; EstVAR_Boot.AR{1,3}];
+    mP_boot_2Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
     Sigma_boot_2Regime = (Residuals_Boot'*Residuals_Boot)/T2;
 
     [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB2+1:TB3,:));
-    mP_boot_3Regime = [EstVAR_Boot.AR{1,1}; EstVAR_Boot.AR{1,2}; EstVAR_Boot.AR{1,3}];
+    mP_boot_3Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
     Sigma_boot_3Regime = (Residuals_Boot'*Residuals_Boot)/T3;
 
-    [EstVAR1_Boot,EstSE1_Boot,logLikVAR1_Boot,Residuals1_Boot] = estimate(VAR,DataSet_Bootstrap(TB3+1:TAll-NLags,:));
-    mP_boot_4Regime = [EstVAR_Boot.AR{1,1}; EstVAR_Boot.AR{1,2}; EstVAR_Boot.AR{1,3}];
+    [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB3+1:TAll-NLags,:));
+    mP_boot_4Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
     Sigma_boot_4Regime = (Residuals_Boot'*Residuals_Boot)/T4;
 
     
@@ -1319,63 +1386,67 @@ for boot = 1 : BootstrapIterations
              StructuralParam_Estimation_Boot(18) StructuralParam_Estimation_Boot(19) 0;
              0                                   0                                   StructuralParam_Estimation_Boot(21)];
 
+    SVAR_1Regime_Boot = C_Boot;
+    SVAR_2Regime_Boot = C_Boot + Q2_Boot;
+    SVAR_3Regime_Boot = C_Boot + Q2_Boot + Q3_Boot;
+    SVAR_4Regime_Boot = C_Boot + Q2_Boot + Q3_Boot + Q4_Boot;
 
-    % Sign normalization  (recall that identification holds up to sign normalization)   
-    if C_Boot(1,1)<0
-    C_Boot(:,1)=-C_Boot(:,1);
+    % Sign normalization (recall that identification holds up to sign normalization)   
+    if SVAR_1Regime_Boot(1,1)<0
+    SVAR_1Regime_Boot(:,1)=-SVAR_1Regime_Boot(:,1);
     end
-    if C_Boot(2,2)<0
-    C_Boot(:,2)=-C_Boot(:,2); 
+    if SVAR_1Regime_Boot(2,2)<0
+    SVAR_1Regime_Boot(:,2)=-SVAR_1Regime_Boot(:,2); 
     end
-    if C_Boot(3,3)<0
-    C_Boot(:,3)=-C_Boot(:,3);
-    end
-
-    if Q2_Boot(1,1)<0
-    Q2_Boot(:,1)=-Q2_Boot(:,1);
-    end
-    if Q2_Boot(2,2)<0
-    Q2_Boot(:,2)=-Q2_Boot(:,2); 
-    end
-    if Q2_Boot(3,3)<0
-    Q2_Boot(:,3)=-Q2_Boot(:,3);
+    if SVAR_1Regime_Boot(3,3)<0
+    SVAR_1Regime_Boot(:,3)=-SVAR_1Regime_Boot(:,3);
     end
 
-    if Q3_Boot(1,1)<0
-    Q3_Boot(:,1)=-Q3_Boot(:,1);
+    if SVAR_2Regime_Boot(1,1)<0
+    SVAR_2Regime_Boot(:,1)=-SVAR_2Regime_Boot(:,1);
     end
-    if Q3_Boot(2,2)<0
-    Q3_Boot(:,2)=-Q3_Boot(:,2); 
+    if SVAR_2Regime_Boot(2,2)<0
+    SVAR_2Regime_Boot(:,2)=-SVAR_2Regime_Boot(:,2); 
     end
-    if Q3_Boot(3,3)<0
-    Q3_Boot(:,3)=-Q3_Boot(:,3);
+    if SVAR_2Regime_Boot(3,3)<0
+    SVAR_2Regime_Boot(:,3)=-SVAR_2Regime_Boot(:,3);
     end
 
-    if Q4_Boot(1,1)<0
-    Q4_Boot(:,1)=-Q4_Boot(:,1);
+    if SVAR_3Regime_Boot(1,1)<0
+    SVAR_3Regime_Boot(:,1)=-SVAR_3Regime_Boot(:,1);
     end
-    if Q4_Boot(2,2)<0
-    Q4_Boot(:,2)=-Q4_Boot(:,2); 
+    if SVAR_3Regime_Boot(2,2)<0
+    SVAR_3Regime_Boot(:,2)=-SVAR_3Regime_Boot(:,2); 
     end
-    if Q4_Boot(3,3)<0
-    Q4_Boot(:,3)=-Q4_Boot(:,3);
+    if SVAR_3Regime_Boot(3,3)<0
+    SVAR_3Regime_Boot(:,3)=-SVAR_3Regime_Boot(:,3);
+    end
+
+    if SVAR_4Regime_Boot(1,1)<0
+    SVAR_4Regime_Boot(:,1)=-SVAR_4Regime_Boot(:,1);
+    end
+    if SVAR_4Regime_Boot(2,2)<0
+    SVAR_4Regime_Boot(:,2)=-SVAR_4Regime_Boot(:,2); 
+    end
+    if SVAR_4Regime_Boot(3,3)<0
+    SVAR_4Regime_Boot(:,3)=-SVAR_4Regime_Boot(:,3);
     end
 
     J=[eye(M) zeros(M,M*(NLags-1))];
-    CompanionMatrix_1Regime_Boot = [mP_boot_1Regime(1:3,:) mP_boot_1Regime(4:6,:) mP_boot_1Regime(7:9,:);
-                            eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
-    CompanionMatrix_2Regime_Boot = [mP_boot_2Regime(1:3,:) mP_boot_2Regime(4:6,:) mP_boot_2Regime(7:9,:);
-                            eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
-    CompanionMatrix_3Regime_Boot = [mP_boot_3Regime(1:3,:) mP_boot_3Regime(4:6,:) mP_boot_3Regime(7:9,:);
-                            eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
-    CompanionMatrix_4Regime_Boot = [mP_boot_4Regime(1:3,:) mP_boot_4Regime(4:6,:) mP_boot_4Regime(7:9,:);
-                            eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
+    CompanionMatrix_1Regime_Boot = [mP_boot_1Regime;
+                                    eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
+    CompanionMatrix_2Regime_Boot = [mP_boot_2Regime;
+                                    eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
+    CompanionMatrix_3Regime_Boot = [mP_boot_3Regime;
+                                    eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
+    CompanionMatrix_4Regime_Boot = [mP_boot_4Regime;
+                                    eye(M*(NLags-1)) zeros(M*(NLags-1),M)];
 
     for h = 0 : HorizonIRF
-    TETA_Boot_1Regime(:,:,h+1,boot)=J*CompanionMatrix_1Regime_Boot^h*J'*C_Boot;
-    TETA_Boot_2Regime(:,:,h+1,boot)=J*CompanionMatrix_2Regime_Boot^h*J'*(C_Boot+Q2_Boot);
-    TETA_Boot_3Regime(:,:,h+1,boot)=J*CompanionMatrix_3Regime_Boot^h*J'*(C_Boot+Q2_Boot+Q3_Boot);
-    TETA_Boot_4Regime(:,:,h+1,boot)=J*CompanionMatrix_4Regime_Boot^h*J'*(C_Boot+Q2_Boot+Q3_Boot+Q4_Boot);
+    TETA_Boot_1Regime(:,:,h+1,boot) = J*CompanionMatrix_1Regime_Boot^h*J'*SVAR_1Regime_Boot;
+    TETA_Boot_2Regime(:,:,h+1,boot) = J*CompanionMatrix_2Regime_Boot^h*J'*SVAR_2Regime_Boot;
+    TETA_Boot_3Regime(:,:,h+1,boot) = J*CompanionMatrix_3Regime_Boot^h*J'*SVAR_3Regime_Boot;
+    TETA_Boot_4Regime(:,:,h+1,boot) = J*CompanionMatrix_4Regime_Boot^h*J'*SVAR_4Regime_Boot;
     end
 
 end   
@@ -1394,8 +1465,8 @@ IRF_Sup_Boot_4Regime = prctile(TETA_Boot_4Regime,quant(2),4);
 
 
 
-
 % ------------------------------------------------------------------------
+
 
 
 % All 4 Volatility Regimes in one plot (No confidence bands)
@@ -1420,7 +1491,6 @@ for r = 1:4
     IRF = eval(sprintf('SVAR_%dRegime_UP', r));  
     CompanionMatrix = eval(sprintf('CompanionMatrix_%dRegime', r));
     
-
     J = [eye(M), zeros(M, M*(NLags-1))];
 
     for h = 0:HorizonIRF
@@ -1428,13 +1498,12 @@ for r = 1:4
     end
 end
 
+
 figure(5);
 sgtitle('Structural IRFs for All Regimes');
-
 index = 1;
-x = 1:HorizonIRF + 1;
+x = 1:HorizonIRF+1;
 colors = lines(4);
-
 for i = 1:3
     for j = 1:3
         subplot(3, 3, index);
@@ -1510,6 +1579,7 @@ for i = 1:3
     title(SubTitles{1,j},'interpreter','latex');
     set(gca,'FontSize',FontSizeIRFGraph);
     axis tight
+    
     index=index+1;
 
     end

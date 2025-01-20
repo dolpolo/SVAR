@@ -23,8 +23,8 @@ Q3=[0        0        teta(14);
     0        0        teta(16)];
 
 Q4=[teta(17)    0      teta(20);
-    teta(18)  teta(19)     0;
-    0           0      teta(21)];
+    teta(18)  teta(19) teta(21);
+    0           0      teta(22)];
 
     K1 = (C);
     K1 = K1^(-1);

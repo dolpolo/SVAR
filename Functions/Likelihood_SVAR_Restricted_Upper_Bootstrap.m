@@ -1,4 +1,4 @@
-function [logLik]=Likelihood_SVAR_Restricted_Upper(teta)
+function [logLik]=Likelihood_SVAR_Restricted_Upper_Bootstrap(teta)
 
 global Sigma_boot_1Regime
 global Sigma_boot_2Regime
