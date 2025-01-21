@@ -407,6 +407,7 @@ LK_4Regime=[-Log_LK];
 
 % Upper Panel of Table 2
 StructuralParam=22; 
+StructuralParam_upper=22; 
 InitialValue_SVAR_Initial=[
 0.5;
 0.5;
@@ -439,12 +440,12 @@ InitialValue_SVAR_Initial=[
 [StructuralParam_Estiamtion_MATRIX,Likelihood_MATRIX,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted_Upper',InitialValue_SVAR_Initial',options);
 
 StructuralParam_Estiamtion=StructuralParam_Estiamtion_MATRIX;
-LK_Estimation=Likelihood_MATRIX;
+LK_Estimation_upper=Likelihood_MATRIX;
 Hessian_Estimation=Hessian_MATRIX;
 SE_Estimation=diag(Hessian_Estimation^(-1)).^0.5;
 
 % Overidentification LR test
-LR_Test_UP = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation);
+LR_Test_UP = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation_upper);
 PVarl_UP = 1 - chi2cdf((LR_Test_UP),24-StructuralParam);
 
 Parameters = [ [1:StructuralParam]' StructuralParam_Estiamtion SE_Estimation]; 
@@ -567,6 +568,7 @@ Jacobian= RankMatrix*HSelection;
 
 % Report the rank of the matrix for checking the identification
 rank(Jacobian)
+
 
 %% Estimation of the standard errors of the parameters in B, B+Q2, B+Q2+Q3 (delta method)
 
@@ -828,19 +830,20 @@ SVAR_4Regime_UP = SVAR_4Regime;
 
 %%  Lower Panel of Table 2
 StructuralParam=20; 
+StructuralParam_lower=20; 
 InitialValue_SVAR_Initial=0.5*ones(StructuralParam,1);
 
 % ML function
 [StructuralParam_Estiamtion_MATRIX,Likelihood_MATRIX,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted',InitialValue_SVAR_Initial',options);
 
 StructuralParam_Estiamtion=StructuralParam_Estiamtion_MATRIX;
-LK_Estimation=Likelihood_MATRIX;
+LK_Estimation_lower=Likelihood_MATRIX;
 Hessian_Estimation=Hessian_MATRIX;
 
 SE_Estimation=diag(Hessian_Estimation^(-1)).^0.5;
 
 % Overidentification LR test
-LR_Test_LW = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation);
+LR_Test_LW = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation_lower);
 PVar_LW = 1 - chi2cdf(LR_Test_LW,24-StructuralParam);
  
 Parameters = [ [1:StructuralParam]' StructuralParam_Estiamtion' SE_Estimation]; 
@@ -1284,6 +1287,19 @@ disp(LR_Test_LW)
 disp('P-value:')
 disp(PVar_LW)
 
+
+disp('----------------------------------------------------------------')
+disp('--------------------- MODEL COMPARISON -------------------------')
+disp('----------------------------------------------------------------')
+disp('----------------------- Coefficients ---------------------------')
+
+LR_model_comp = - 2*(LK_Estimation_upper - LK_Estimation_lower);
+PVar_model_comp = 1 - chi2cdf(LR_model_comp, StructuralParam_upper - StructuralParam_lower);
+
+disp('Test statistics:')
+disp(LR_model_comp)
+disp('P-value:')
+disp(PVar_model_comp)
 
 
 %% Step 4: IRFs
