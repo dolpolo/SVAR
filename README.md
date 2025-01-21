@@ -1,7 +1,6 @@
 # **STRUCTURAL VAR**
 
-## [**Extending Results of "Uncertainty Across Volatility Regimes"**  
-]( https://doi.org/10.1002/jae.2672)  
+## [**Extending Results of "Uncertainty Across Volatility Regimes"**]( https://doi.org/10.1002/jae.2672)  
 
 This project extends the results of *"Uncertainty Across Volatility Regimes"* to the post-COVID-19 period using identification-through-heteroskedasticity SVAR analysis.
 
@@ -23,8 +22,7 @@ Using a nonrecursive identification scheme for uncertainty shocks that exploits 
 
 ## **Overview**
 
-This project replicates and extends the analysis of [*"Uncertainty Across Volatility Regimes"*  
-Zenodo DOI: 10.5281/ZENODO.10514668]( https://doi.org/10.1002/jae.2672)  
+This project replicates and extends the analysis of [*"Uncertainty Across Volatility Regimes"*]( https://doi.org/10.1002/jae.2672)  
 by Giovanni Angelini, Emanuele Bacchiocchi, Giovanni Caggiano, and Luca Fanelli.  
 
 The contribution extends the observation period up to **2024**, studying the effects of uncertainty even after the **COVID-19 pandemic** and introducing additional identification restrictions.  
