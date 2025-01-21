@@ -63,7 +63,7 @@ TB1=284; % 1984 - M4
 TB2=569; % 2007 - M12
 TB3=715; % 2020 - M2
 
-%% Data Set
+%% Step 0: Set up
 DataSet = DataSet(2:end-4, [3, 5, 8]);
 AllDataSet=DataSet;
 M=size(DataSet,2);
@@ -86,19 +86,7 @@ T3 = size(DataSet_3Regime,1)-NLags;
 T4 = size(DataSet_4Regime,1)-NLags;
 TAll = size(DataSet,1)-NLags;
 
-%% Step 2: Closed-form VAR Estimation
-
-% Whole sample
-
-T=TAll;
-
-VAR_Variables_Y=DataSet(NLags+1:end,:);
-VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1)];
-for i = 1 : NLags
-Lag = DataSet(NLags+1-i:end-i,:);
-VAR_Variables_X = [VAR_Variables_X Lag];
-end
-
+% Duplication Matrix
 DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
 DuplicationMatrix(1,1)=1;
 DuplicationMatrix(2,2)=1;
@@ -109,9 +97,11 @@ DuplicationMatrix(6,5)=1;
 DuplicationMatrix(7,3)=1;
 DuplicationMatrix(8,5)=1;
 DuplicationMatrix(9,6)=1;
-mDD=(DuplicationMatrix'*DuplicationMatrix)^(-1)*DuplicationMatrix';
-mNN=DuplicationMatrix*mDD;
 
+% Moore-Penrose Pseudo-Inverse of the Duplication Matrix
+mDD=(DuplicationMatrix'*DuplicationMatrix)^(-1)*DuplicationMatrix';
+
+% Commutation matrix
 KommutationMatrix = zeros(M^2,M^2);
 KommutationMatrix(1,1)=1;
 KommutationMatrix(2,4)=1;
@@ -123,31 +113,35 @@ KommutationMatrix(7,3)=1;
 KommutationMatrix(8,6)=1;
 KommutationMatrix(9,9)=1;
 
+% N matrix
 NMatrix = 0.5*(eye(M^2)+KommutationMatrix);
 
+
+%% Step 1: Closed-form VAR Estimation
+
+% ----------------------------------------------------------------------
+%                             Whole sample
+% ----------------------------------------------------------------------
+
+T=TAll;
+
+VAR_Variables_Y=DataSet(NLags+1:end,:);
+VAR_Variables_X=[ones(size(DataSet(NLags:end-1,:),1),1)];
+for i = 1 : NLags
+Lag = DataSet(NLags+1-i:end-i,:);
+VAR_Variables_X = [VAR_Variables_X Lag];
+end
+
 Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_Y;
-% try
-[Beta_LK,Log_LK,exitflag,~,grad,HESSIAN_LK] = fminunc('Likelihood_UNRESTRICTED',Beta_OLS',options);
-% catch
-% Beta_LK=Beta_OLS';
-% Log_LK=Likelihood_UNRESTRICTED_Error(Beta_OLS');    
-% end
+[Beta_LK,Log_LK,~,~,~,~] = fminunc('Likelihood_UNRESTRICTED', Beta_OLS', options);
 
-Log_LK_whole = Log_LK;
-% Mdl = varm(M,NLags);
-% EstMdl = estimate(Mdl,VAR_Variables_Y);
-% Sigma_eta = EstMdl.Covariance;
-% Corr_Sigma_eta = corrcov(Sigma_eta);
-
-CommonPI=Beta_LK;
-Errors=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
-Omega_LK=1/(T)*Errors'*Errors;
-% C = cov(Errors)
-
-SE_H = reshape(sqrt(abs(diag(HESSIAN_LK^(-1)))),M,M*NLags+1)';
+CommonPI = Beta_LK;
+Errors = VAR_Variables_Y-VAR_Variables_X*Beta_LK';
+Omega_LK = 1/(T)*(Errors'*Errors);
+Rho_LK = corrcov(Omega_LK);
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
-% StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
+StandardErrors_BETA = reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
 
 % Standard errors of the reduced form parameters (covariance matrix)
 StandardErrors_Omega=sqrt(diag(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)'))));
@@ -155,9 +149,15 @@ StandardErrors_Omega_M=[StandardErrors_Omega(1) StandardErrors_Omega(2) Standard
                         StandardErrors_Omega(2) StandardErrors_Omega(4) StandardErrors_Omega(5);
                         StandardErrors_Omega(3) StandardErrors_Omega(5) StandardErrors_Omega(6)];
 
-% ******************************************************************************
-% First Regime
-% ******************************************************************************
+LK_WholeSample = -Log_LK;
+Beta_WholeSample = [Beta_LK'; StandardErrors_BETA];
+Omega_WholeSample = [Omega_LK; StandardErrors_Omega_M];
+Rho_WholeSample = Rho_LK;
+
+
+% ----------------------------------------------------------------------
+%                             First Regime
+% ----------------------------------------------------------------------
 
 T=T1;
 DataSet=DataSet_1Regime;
@@ -169,60 +169,38 @@ Lag = DataSet(NLags+1-i:end-i,:);
 VAR_Variables_X = [VAR_Variables_X Lag];
 end
 
-DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
-DuplicationMatrix(1,1)=1;
-DuplicationMatrix(2,2)=1;
-DuplicationMatrix(3,3)=1;
-DuplicationMatrix(4,2)=1;
-DuplicationMatrix(5,4)=1;
-DuplicationMatrix(6,5)=1;
-DuplicationMatrix(7,3)=1;
-DuplicationMatrix(8,5)=1;
-DuplicationMatrix(9,6)=1;
-mDD=(DuplicationMatrix'*DuplicationMatrix)^(-1)*DuplicationMatrix';
-mNN=DuplicationMatrix*mDD;
-
 Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_Y;
-% try
-[Beta_LK,Log_LK,exitflag,output,grad,HESSIAN_LK] = fminunc('Likelihood_UNRESTRICTED',Beta_OLS',options);
-% catch
-% Beta_LK=Beta_OLS';
-% Log_LK=Likelihood_UNRESTRICTED_Error(Beta_OLS');    
-% end
+[Beta_LK,Log_LK,~,~,~,~] = fminunc('Likelihood_UNRESTRICTED', Beta_OLS', options);
 
-LK_1Regime_Sampe = Log_LK;
-
-Errors_1Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
-Omega_LK=1/(T)*Errors_1Regime'*Errors_1Regime;
+Errors_1Regime = VAR_Variables_Y-VAR_Variables_X*Beta_LK';
+Omega_LK = 1/(T)*(Errors_1Regime'*Errors_1Regime);
 Rho_LK = corrcov(Omega_LK);
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
-StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
+StandardErrors_BETA = reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
+
 % Standard errors of the reduced form parameters (covariance matrix)
-StandardErrors_Omega=sqrt(diag(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)'))));
-StandardErrors_Omega_M=[StandardErrors_Omega(1) StandardErrors_Omega(2) StandardErrors_Omega(3);
-                                StandardErrors_Omega(2) StandardErrors_Omega(4) StandardErrors_Omega(5);
-                                StandardErrors_Omega(3) StandardErrors_Omega(5) StandardErrors_Omega(6)];
+StandardErrors_Omega = sqrt(diag(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)'))));
+StandardErrors_Omega_M = [StandardErrors_Omega(1) StandardErrors_Omega(2) StandardErrors_Omega(3);
+                          StandardErrors_Omega(2) StandardErrors_Omega(4) StandardErrors_Omega(5);
+                          StandardErrors_Omega(3) StandardErrors_Omega(5) StandardErrors_Omega(6)];
 
-
-
-SE_Sigma_1Regime=StandardErrors_Omega;
-StandardErrorSigma_1Regime=(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
+SE_Sigma_1Regime = StandardErrors_Omega;
+StandardErrorSigma_1Regime = (2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
 
 CompanionMatrix_1Regime=[Beta_LK(:,2:end);
                          eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
-                            
-Omega_1Regime=[Omega_LK;StandardErrors_Omega_M];
-Beta_1Regime=[Beta_LK'; StandardErrors_BETA];
 
-Sigma_1Regime=Omega_LK;
+LK_1Regime= -Log_LK;
+Sigma_1Regime = Omega_LK;
+Omega_1Regime = [Omega_LK; StandardErrors_Omega_M];
+Beta_1Regime = [Beta_LK'; StandardErrors_BETA];
+Rho_1Regime = Rho_LK;
 
-% Likelihood of the VAR in the first regime
-LK_1Regime=[-Log_LK];
 
-% ******************************************************************************
-% Second Regime
-% ******************************************************************************
+% ----------------------------------------------------------------------
+%                             Second Regime
+% ----------------------------------------------------------------------
 
 T=T2;
 DataSet=DataSet_2Regime;
@@ -234,58 +212,38 @@ Lag = DataSet(NLags+1-i:end-i,:);
 VAR_Variables_X = [VAR_Variables_X Lag];
 end
 
-DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
-DuplicationMatrix(1,1)=1;
-DuplicationMatrix(2,2)=1;
-DuplicationMatrix(3,3)=1;
-DuplicationMatrix(4,2)=1;
-DuplicationMatrix(5,4)=1;
-DuplicationMatrix(6,5)=1;
-DuplicationMatrix(7,3)=1;
-DuplicationMatrix(8,5)=1;
-DuplicationMatrix(9,6)=1;
-mDD=(DuplicationMatrix'*DuplicationMatrix)^(-1)*DuplicationMatrix';
-mNN=DuplicationMatrix*mDD;
-
 Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_Y;
-% try
-[Beta_LK,Log_LK,exitflag,output,grad,HESSIAN_LK] = fminunc('Likelihood_UNRESTRICTED',Beta_OLS',options);
-% catch
-% Beta_LK=Beta_OLS';
-% Log_LK=Likelihood_UNRESTRICTED_Error(Beta_OLS');    
-% end
+[Beta_LK,Log_LK,~,~,~,~] = fminunc('Likelihood_UNRESTRICTED', Beta_OLS', options);
 
-Errors_2Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
-Omega_LK=1/(T)*Errors_2Regime'*Errors_2Regime;
+Errors_2Regime = VAR_Variables_Y-VAR_Variables_X*Beta_LK';
+Omega_LK = 1/(T)*(Errors_2Regime'*Errors_2Regime);
 Rho_LK = corrcov(Omega_LK);
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
 StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
+
 % Standard errors of the reduced form parameters (Covariance matrix)
 StandardErrors_Omega=sqrt(diag(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)'))));
 StandardErrors_Omega_M=[StandardErrors_Omega(1) StandardErrors_Omega(2) StandardErrors_Omega(3);
                                 StandardErrors_Omega(2) StandardErrors_Omega(4) StandardErrors_Omega(5);
                                 StandardErrors_Omega(3) StandardErrors_Omega(5) StandardErrors_Omega(6)];
 
-LK_2Regime_Sampe = Log_LK;
-                            
 SE_Sigma_2Regime=StandardErrors_Omega;
 StandardErrorSigma_2Regime=(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
 
 CompanionMatrix_2Regime=[Beta_LK(:,2:end);
                          eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
-                             
-Omega_2Regime=[Omega_LK;StandardErrors_Omega_M];
-Beta_2Regime=[Beta_LK'; StandardErrors_BETA];
 
-Sigma_2Regime=Omega_LK;
+LK_2Regime = -Log_LK;
+Sigma_2Regime = Omega_LK;
+Omega_2Regime = [Omega_LK; StandardErrors_Omega_M];
+Beta_2Regime = [Beta_LK'; StandardErrors_BETA];
+Rho__2Regime = Rho_LK;
 
-% Likelihood of the VAR in the second regime
-LK_2Regime=[-Log_LK];
-          
-% ******************************************************************************
-% Third Regime
-% ******************************************************************************
+
+% ----------------------------------------------------------------------
+%                             Third Regime
+% ----------------------------------------------------------------------
 
 T=T3;
 DataSet=DataSet_3Regime;
@@ -297,27 +255,11 @@ Lag = DataSet(NLags+1-i:end-i,:);
 VAR_Variables_X = [VAR_Variables_X Lag];
 end
 
-DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
-DuplicationMatrix(1,1)=1;
-DuplicationMatrix(2,2)=1;
-DuplicationMatrix(3,3)=1;
-DuplicationMatrix(4,2)=1;
-DuplicationMatrix(5,4)=1;
-DuplicationMatrix(6,5)=1;
-DuplicationMatrix(7,3)=1;
-DuplicationMatrix(8,5)=1;
-DuplicationMatrix(9,6)=1;
-mDD=(DuplicationMatrix'*DuplicationMatrix)^(-1)*DuplicationMatrix';
-mNN=DuplicationMatrix*mDD;
-
 Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_Y;
+[Beta_LK,Log_LK,~,~,~,~] = fminunc('Likelihood_UNRESTRICTED', Beta_OLS', options);
 
-[Beta_LK,Log_LK,exitflag,output,grad,HESSIAN_LK] = fminunc('Likelihood_UNRESTRICTED',Beta_OLS',options);
-
-LK_3Regime_Sampe = Log_LK;
-
-Errors_3Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
-Omega_LK=1/(T)*Errors_3Regime'*Errors_3Regime;
+Errors_3Regime = VAR_Variables_Y-VAR_Variables_X*Beta_LK';
+Omega_LK = 1/(T)*(Errors_3Regime'*Errors_3Regime);
 Rho_LK = corrcov(Omega_LK);
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
@@ -329,23 +271,22 @@ StandardErrors_Omega_M=[StandardErrors_Omega(1) StandardErrors_Omega(2) Standard
                                 StandardErrors_Omega(2) StandardErrors_Omega(4) StandardErrors_Omega(5);
                                 StandardErrors_Omega(3) StandardErrors_Omega(5) StandardErrors_Omega(6)];
 
-SE_Sigma_3Regime=StandardErrors_Omega;
-StandardErrorSigma_3Regime=(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
+SE_Sigma_3Regime = StandardErrors_Omega;
+StandardErrorSigma_3Regime = (2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
                             
-CompanionMatrix_3Regime=[Beta_LK(:,2:end);
-                         eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
-                                       
-Omega_3Regime=[Omega_LK;StandardErrors_Omega_M];
-Beta_3Regime=[Beta_LK'; StandardErrors_BETA];
+CompanionMatrix_3Regime = [Beta_LK(:,2:end);
+                           eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
 
+LK_3Regime = -Log_LK;
 Sigma_3Regime=Omega_LK;
+Omega_3Regime = [Omega_LK; StandardErrors_Omega_M];
+Beta_3Regime = [Beta_LK'; StandardErrors_BETA];
+Rho_3Regime = Rho_LK;
 
-% Likelihood of the VAR in the third regime  
-LK_3Regime=[-Log_LK];
 
-% ******************************************************************************
-% Fourth Regime
-% ******************************************************************************
+% ----------------------------------------------------------------------
+%                             Fourth Regime
+% ----------------------------------------------------------------------
 
 T=T4;
 DataSet=DataSet_4Regime;
@@ -357,101 +298,55 @@ Lag = DataSet(NLags+1-i:end-i,:);
 VAR_Variables_X = [VAR_Variables_X Lag];
 end
 
-DuplicationMatrix = zeros(M^2,0.5*M*(M+1));
-DuplicationMatrix(1,1)=1;
-DuplicationMatrix(2,2)=1;
-DuplicationMatrix(3,3)=1;
-DuplicationMatrix(4,2)=1;
-DuplicationMatrix(5,4)=1;
-DuplicationMatrix(6,5)=1;
-DuplicationMatrix(7,3)=1;
-DuplicationMatrix(8,5)=1;
-DuplicationMatrix(9,6)=1;
-mDD=(DuplicationMatrix'*DuplicationMatrix)^(-1)*DuplicationMatrix';
-mNN=DuplicationMatrix*mDD;
-
 Beta_OLS=(VAR_Variables_X'*VAR_Variables_X)^(-1)*VAR_Variables_X'*VAR_Variables_Y;
+[Beta_LK,Log_LK,~,~,~,~] = fminunc('Likelihood_UNRESTRICTED', Beta_OLS', options);
 
-[Beta_LK,Log_LK,exitflag,output,grad,HESSIAN_LK] = fminunc('Likelihood_UNRESTRICTED',Beta_OLS',options);
-
-LK_4Regime_Sampe = Log_LK;
-
-Errors_4Regime=VAR_Variables_Y-VAR_Variables_X*Beta_LK';
-Omega_LK=1/(T)*Errors_4Regime'*Errors_4Regime;
+Errors_4Regime = VAR_Variables_Y-VAR_Variables_X*Beta_LK';
+Omega_LK = 1/(T)*Errors_4Regime'*Errors_4Regime;
 Rho_LK = corrcov(Omega_LK);
 
 % Standard errors of the reduced form parameters (autoregressive parameters)
-StandardErrors_BETA=reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
+StandardErrors_BETA = reshape(sqrt(diag(kron(Omega_LK,(VAR_Variables_X'*VAR_Variables_X)^(-1)))),M*NLags+1,M);
 
 % Standard errors of the reduced form parameters (covariance matrix)
-StandardErrors_Omega=sqrt(diag(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)'))));
-StandardErrors_Omega_M=[StandardErrors_Omega(1) StandardErrors_Omega(2) StandardErrors_Omega(3);
-                                StandardErrors_Omega(2) StandardErrors_Omega(4) StandardErrors_Omega(5);
-                                StandardErrors_Omega(3) StandardErrors_Omega(5) StandardErrors_Omega(6)];
+StandardErrors_Omega = sqrt(diag(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)'))));
+StandardErrors_Omega_M = [StandardErrors_Omega(1) StandardErrors_Omega(2) StandardErrors_Omega(3);
+                          StandardErrors_Omega(2) StandardErrors_Omega(4) StandardErrors_Omega(5);
+                          StandardErrors_Omega(3) StandardErrors_Omega(5) StandardErrors_Omega(6)];
 
-SE_Sigma_4Regime=StandardErrors_Omega;
-StandardErrorSigma_4Regime=(2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
-                            
+SE_Sigma_4Regime = StandardErrors_Omega;
+StandardErrorSigma_4Regime = (2/T*((mDD*kron(Omega_LK,Omega_LK)*(mDD)')));
+   
 CompanionMatrix_4Regime=[Beta_LK(:,2:end);
                          eye(M*(NLags-1),M*(NLags-1)) zeros(M*(NLags-1),M)];                            
-                                       
-Omega_4Regime=[Omega_LK;StandardErrors_Omega_M];
-Beta_4Regime=[Beta_LK'; StandardErrors_BETA];
 
+LK_4Regime= -Log_LK;
 Sigma_4Regime=Omega_LK;
+Omega_4Regime = [Omega_LK; StandardErrors_Omega_M];
+Beta_4Regime = [Beta_LK'; StandardErrors_BETA];
+Rho_4Regime = Rho_LK;
 
-% Likelihood of the VAR in the third regime  
-LK_4Regime=[-Log_LK];
 
-%% Step 3: Structural Parameters Estimation
+%% Step 2.1: Estimation of Structural Model with Endogenous Uncertainty
 
-% Upper Panel of Table 2
-StructuralParam=22; 
-StructuralParam_upper=22; 
-InitialValue_SVAR_Initial=[
-0.5;
-0.5;
-0;
-0.5;
-0.5;
+StructuralParam = 22; 
+StructuralParam_end = 22;
+InitialValue_SVAR = [0.5; 0.5; 0; 0.5; 0.5; 0; 0.5; 0.5; 0.5; 0; 0.5; 0.5; 0.5; 0; 0.5; 0; -0.5; 0.5; 0; -0.5; 0; 0.5]';
 
-0;
-0.5;
-0.5;
-0.5;
-0;
-0.5;
+[StructuralParam_Estiamtion_MATRIX,Likelihood_MATRIX,~,~,~,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted_Upper', InitialValue_SVAR', options);
 
-0.5;
-0.5;
-0;
-0.5;
-0;
-
--0.5;
-0.5;
-0;
--0.5;
-0
-0.5]';
-
-% InitialValue_SVAR_Initial = [0.0421063462998413;-0.0117405094668808;-0.0448104973829488;0.0368304377782917;-0.0157488924466030;0.00580239808317136;-0.0218826768384612;0.0446235881977053;0.0253441293699309;0.0590524902571742;0.0251946247347187;0.0113867188814942;-0.0446119691076574;0.0448659977279010;0.0428022339672646;0.00907094402960949];
-% ML function
-[StructuralParam_Estiamtion_MATRIX,Likelihood_MATRIX,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted_Upper',InitialValue_SVAR_Initial',options);
-
-StructuralParam_Estiamtion=StructuralParam_Estiamtion_MATRIX;
-LK_Estimation_upper=Likelihood_MATRIX;
-Hessian_Estimation=Hessian_MATRIX;
-SE_Estimation=diag(Hessian_Estimation^(-1)).^0.5;
+StructuralParam_Estiamtion = StructuralParam_Estiamtion_MATRIX;
+LK_Estimation_end = Likelihood_MATRIX;
+Hessian_Estimation = Hessian_MATRIX;
+SE_Estimation = diag(Hessian_Estimation^(-1)).^0.5;
 
 % Overidentification LR test
-LR_Test_UP = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation_upper);
-PVarl_UP = 1 - chi2cdf((LR_Test_UP),24-StructuralParam);
+LR_Test_END = 2 * ((LK_1Regime+LK_2Regime+LK_3Regime+LK_4Regime)+LK_Estimation_end);
+PVarl_END = 1 - chi2cdf((LR_Test_END),24-StructuralParam);
 
 Parameters = [ [1:StructuralParam]' StructuralParam_Estiamtion SE_Estimation]; 
 
-% Here below we define the matrices of the structural parameters with restrictions on the coefficients as described in eq. (18) of the paper. SVAR_C corresponds to the B matrix in the paper, SVAR_Q2 corresponds to
-% the Q2 matrix of the paper and SVAR_Q3 corresponds to the Q3 matrix of the paper.
+% Define the matrices of the structural parameters
 
 SVAR_C=[StructuralParam_Estiamtion(1) StructuralParam_Estiamtion(3) 0;
         StructuralParam_Estiamtion(2) StructuralParam_Estiamtion(4) 0;
@@ -474,8 +369,7 @@ SVAR_2Regime=SVAR_C+SVAR_Q2;   % B+Q2
 SVAR_3Regime=SVAR_C+SVAR_Q2+SVAR_Q3;  % B+Q2+Q3
 SVAR_4Regime=SVAR_C+SVAR_Q2+SVAR_Q3+SVAR_Q4;  % B+Q2+Q3+Q4
 
-% Flip the sign if the parameter on the main diagonal is negative
-
+% Sign Normalization
 	if SVAR_1Regime(1,1)<0
     SVAR_1Regime(:,1)=-SVAR_1Regime(:,1);
     end
@@ -520,6 +414,10 @@ MATRICES=[SVAR_1Regime;
           SVAR_2Regime;
           SVAR_3Regime;
           SVAR_4Regime]
+
+% -------------------------------------------------------------------------
+%                  Rank Condition for Identification
+% -------------------------------------------------------------------------
    
 % Calculates the analytical derivatives organized in block matrices      
 V11=2*NMatrix*kron(SVAR_C,eye(M));
@@ -566,45 +464,37 @@ HSelection(36,22)=1;
 
 Jacobian= RankMatrix*HSelection;
 
-% Report the rank of the matrix for checking the identification
 rank(Jacobian)
 
 
-%% Estimation of the standard errors of the parameters in B, B+Q2, B+Q2+Q3 (delta method)
+%% Step 2.2: Estimation of standard errors with delta method
 
-StructuralEstimationCorrected=[
-        MATRICES(1,1);
-        MATRICES(2,1);
-        MATRICES(1,2);
-        MATRICES(2,2);
-        MATRICES(3,3);
-        MATRICES(4,1)-MATRICES(1,1);
-        MATRICES(5,1)-MATRICES(2,1);
-        MATRICES(6,1);
-        MATRICES(5,2)-MATRICES(2,2);
-        MATRICES(4,3);
-        MATRICES(6,3)-MATRICES(3,3);
-        MATRICES(8,1)-MATRICES(5,1);         
-        MATRICES(8,2)-MATRICES(5,2);
-        MATRICES(7,3)-MATRICES(4,3);
-        MATRICES(8,3);
-        MATRICES(9,3)-MATRICES(6,3);
-        MATRICES(10,1)-MATRICES(7,1);
-        MATRICES(10,3)-MATRICES(7,3);
-        MATRICES(11,1)-MATRICES(8,1);
-        MATRICES(11,2)-MATRICES(8,2);
-        MATRICES(11,3)-MATRICES(8,3);
-        MATRICES(12,3)-MATRICES(9,3);
-        ];
-% 
-OUTPUT_Table2_StructuralEstimation=[StructuralEstimationCorrected SE_Estimation];
+StructuralEstimationCorrected=[ MATRICES(1,1);
+                                MATRICES(2,1);
+                                MATRICES(1,2);
+                                MATRICES(2,2);
+                                MATRICES(3,3);
+                                MATRICES(4,1)-MATRICES(1,1);
+                                MATRICES(5,1)-MATRICES(2,1);
+                                MATRICES(6,1);
+                                MATRICES(5,2)-MATRICES(2,2);
+                                MATRICES(4,3);
+                                MATRICES(6,3)-MATRICES(3,3);
+                                MATRICES(8,1)-MATRICES(5,1);         
+                                MATRICES(8,2)-MATRICES(5,2);
+                                MATRICES(7,3)-MATRICES(4,3);
+                                MATRICES(8,3);
+                                MATRICES(9,3)-MATRICES(6,3);
+                                MATRICES(10,1)-MATRICES(7,1);
+                                MATRICES(10,3)-MATRICES(7,3);
+                                MATRICES(11,1)-MATRICES(8,1);
+                                MATRICES(11,2)-MATRICES(8,2);
+                                MATRICES(11,3)-MATRICES(8,3);
+                                MATRICES(12,3)-MATRICES(9,3)];
 
+OUTPUT_Table2_StructuralEstimation = [StructuralEstimationCorrected SE_Estimation];
 
 VAR_Est = Hessian_Estimation^(-1); 
- 
-% Here below we calculate the standard errors for B+Q2 and B+Q2+Q3 where we
-% sum two ore three structural parameters. The indeces i,j,k refer to B,
-% Q2, and Q3 respectively.
 
 i=1; 
 j=6;
@@ -796,8 +686,6 @@ gradient_sigma_est=subs(gradient_sigma,[x y z w],[first_par second_par third_par
 gradient_sigma_Matrix=(double(gradient_sigma_est))';    
 SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j k s],[i j k s])*gradient_sigma_Matrix').^0.5);
 
-% standard error matrices
-
 SE_ANALYTIC = [SE_Estimation; SETetaDelta];         
                          
 OUTPUT_Table2_SE_Analytic = [SE_ANALYTIC(1)  SE_ANALYTIC(3)  0;
@@ -817,39 +705,39 @@ OUTPUT_Table2_SE_Analytic = [SE_ANALYTIC(1)  SE_ANALYTIC(3)  0;
                              SE_ANALYTIC(8)  0               SE_ANALYTIC(36);
                              ];
 
-SVAR_1Regime_SE_UP = OUTPUT_Table2_SE_Analytic(1:3,:);
-SVAR_2Regime_SE_UP = OUTPUT_Table2_SE_Analytic(4:6,:);
-SVAR_3Regime_SE_UP = OUTPUT_Table2_SE_Analytic(7:9,:);
-SVAR_4Regime_SE_UP = OUTPUT_Table2_SE_Analytic(10:12,:);
+SVAR_1Regime_SE_END = OUTPUT_Table2_SE_Analytic(1:3,:);
+SVAR_2Regime_SE_END = OUTPUT_Table2_SE_Analytic(4:6,:);
+SVAR_3Regime_SE_END = OUTPUT_Table2_SE_Analytic(7:9,:);
+SVAR_4Regime_SE_END = OUTPUT_Table2_SE_Analytic(10:12,:);
 
-SVAR_1Regime_UP = SVAR_1Regime;
-SVAR_2Regime_UP = SVAR_2Regime;
-SVAR_3Regime_UP = SVAR_3Regime;
-SVAR_4Regime_UP = SVAR_4Regime;
+SVAR_1Regime_END = SVAR_1Regime;
+SVAR_2Regime_END = SVAR_2Regime;
+SVAR_3Regime_END = SVAR_3Regime;
+SVAR_4Regime_END = SVAR_4Regime;
 
 
-%%  Lower Panel of Table 2
-StructuralParam=20; 
-StructuralParam_lower=20; 
-InitialValue_SVAR_Initial=0.5*ones(StructuralParam,1);
+%%  Step 3.1: Estimation of Structural Model with Exogenous Uncertainty
+
+StructuralParam = 20; 
+StructuralParam_ex = 20; 
+InitialValue_SVAR = 0.5*ones(StructuralParam,1);
 
 % ML function
-[StructuralParam_Estiamtion_MATRIX,Likelihood_MATRIX,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted',InitialValue_SVAR_Initial',options);
+[StructuralParam_Estiamtion_MATRIX,Likelihood_MATRIX,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted',InitialValue_SVAR',options);
 
-StructuralParam_Estiamtion=StructuralParam_Estiamtion_MATRIX;
-LK_Estimation_lower=Likelihood_MATRIX;
-Hessian_Estimation=Hessian_MATRIX;
+StructuralParam_Estiamtion = StructuralParam_Estiamtion_MATRIX;
+LK_Estimation_ex = Likelihood_MATRIX;
+Hessian_Estimation = Hessian_MATRIX;
 
-SE_Estimation=diag(Hessian_Estimation^(-1)).^0.5;
+SE_Estimation = diag(Hessian_Estimation^(-1)).^0.5;
 
 % Overidentification LR test
-LR_Test_LW = 2 * ((LK_1Regime(1)+LK_2Regime(1)+LK_3Regime(1)+LK_4Regime(1))+LK_Estimation_lower);
-PVar_LW = 1 - chi2cdf(LR_Test_LW,24-StructuralParam);
+LR_Test_EX = 2 * ((LK_1Regime+LK_2Regime+LK_3Regime+LK_4Regime)+LK_Estimation_ex);
+PVar_EX = 1 - chi2cdf(LR_Test_EX,24-StructuralParam);
  
 Parameters = [ [1:StructuralParam]' StructuralParam_Estiamtion' SE_Estimation]; 
 
-% Here below we define the matrices of the structural parameters with restrictions on the coefficients as described in eq. (18) of the paper. SVAR_C corresponds to the B matrix in the paper, SVAR_Q2 corresponds to
-% the Q2 matrix of the paper and SVAR_Q3 corresponds to the Q3 matrix of the paper.
+% Define the matrices of the structural parameters
 
 SVAR_C=[StructuralParam_Estiamtion(1) 0                             0;
         StructuralParam_Estiamtion(2) StructuralParam_Estiamtion(3) 0;
@@ -872,8 +760,7 @@ SVAR_2Regime=SVAR_C+SVAR_Q2;   % B+Q2
 SVAR_3Regime=SVAR_C+SVAR_Q2+SVAR_Q3;  % B+Q2+Q3
 SVAR_4Regime=SVAR_C+SVAR_Q2+SVAR_Q3+SVAR_Q4;  % B+Q2+Q3+Q4
 
-% Flip the sign if the paraeter on the main diagonal is negative
-
+% Sign Normalization
 	if SVAR_1Regime(1,1)<0
     SVAR_1Regime(:,1)=-SVAR_1Regime(:,1);
     end
@@ -914,11 +801,14 @@ SVAR_4Regime=SVAR_C+SVAR_Q2+SVAR_Q3+SVAR_Q4;  % B+Q2+Q3+Q4
     SVAR_4Regime(:,3)=-SVAR_4Regime(:,3);
     end
      
-MATRICES=[SVAR_1Regime;
-          SVAR_2Regime;
-          SVAR_3Regime;
-          SVAR_4Regime]
-   
+MATRICES = [SVAR_1Regime;
+            SVAR_2Regime;
+            SVAR_3Regime;
+            SVAR_4Regime]
+
+% -------------------------------------------------------------------------
+%                  Rank Condition for Identification
+% -------------------------------------------------------------------------
 
 % Calculates the analytical derivatives organized in block matrices      
 V11=2*NMatrix*kron(SVAR_C,eye(M));
@@ -964,41 +854,35 @@ HSelection(36,20)=1;
 
 Jacobian= RankMatrix*HSelection;
 
-% Report the rank of the matrix for checking the identification
 rank(Jacobian)
 
-%% Estimation of the standard errors of the parameters in B, B+Q2, B+Q2+Q3 (delta method)
 
-StructuralEstimationCorrected=[
-        MATRICES(1,1);
-        MATRICES(2,1);
-        MATRICES(2,2);
-        MATRICES(3,3);
-        MATRICES(4,1)-MATRICES(1,1);
-        MATRICES(5,1)-MATRICES(2,1);
-        MATRICES(5,2)-MATRICES(2,2);
-        MATRICES(4,3);
-        MATRICES(6,3)-MATRICES(3,3);
-        MATRICES(8,1)-MATRICES(5,1);         
-        MATRICES(8,2)-MATRICES(5,2);
-        MATRICES(7,3)-MATRICES(4,3);
-        MATRICES(8,3);
-        MATRICES(9,3)-MATRICES(6,3);
-        MATRICES(10,1)-MATRICES(7,1);
-        MATRICES(10,3)-MATRICES(7,3);
-        MATRICES(11,1)-MATRICES(8,1);
-        MATRICES(11,2)-MATRICES(8,2);
-        MATRICES(11,3)-MATRICES(8,3);
-        MATRICES(12,3)-MATRICES(9,3);];
-% 
-OUTPUT_Table2_StructuralEstimation=[StructuralEstimationCorrected SE_Estimation];
+%% Step 3.2: Estimation of standard errors with delta method
 
+StructuralEstimationCorrected = [MATRICES(1,1);
+                                 MATRICES(2,1);
+                                 MATRICES(2,2);
+                                 MATRICES(3,3);
+                                 MATRICES(4,1)-MATRICES(1,1);
+                                 MATRICES(5,1)-MATRICES(2,1);
+                                 MATRICES(5,2)-MATRICES(2,2);
+                                 MATRICES(4,3);
+                                 MATRICES(6,3)-MATRICES(3,3);
+                                 MATRICES(8,1)-MATRICES(5,1);         
+                                 MATRICES(8,2)-MATRICES(5,2);
+                                 MATRICES(7,3)-MATRICES(4,3);
+                                 MATRICES(8,3);
+                                 MATRICES(9,3)-MATRICES(6,3);
+                                 MATRICES(10,1)-MATRICES(7,1);
+                                 MATRICES(10,3)-MATRICES(7,3);
+                                 MATRICES(11,1)-MATRICES(8,1);
+                                 MATRICES(11,2)-MATRICES(8,2);
+                                 MATRICES(11,3)-MATRICES(8,3);
+                                 MATRICES(12,3)-MATRICES(9,3);];
+
+OUTPUT_Table2_StructuralEstimation = [StructuralEstimationCorrected SE_Estimation];
 
 VAR_Est = Hessian_Estimation^(-1); 
- 
-% Here below we calculate the standard errors for B+Q2 and B+Q2+Q3 where we
-% sum two ore three structural parameters. The indeces i,j,k refer to B,
-% Q2, and Q3 respectively.
 
 i=1; 
 j=5;
@@ -1191,7 +1075,6 @@ gradient_sigma_Matrix=(double(gradient_sigma_est))';
 SETetaDelta(index,:)=(diag(gradient_sigma_Matrix*VAR_Est([i j k s],[i j k s])*gradient_sigma_Matrix').^0.5);
 
 % standard error matrices
-
 SE_ANALYTIC = [SE_Estimation; SETetaDelta];         
                          
 OUTPUT_Table2_SE_Analytic = [SE_ANALYTIC(1)  0               0;
@@ -1208,56 +1091,53 @@ OUTPUT_Table2_SE_Analytic = [SE_ANALYTIC(1)  0               0;
 
                              SE_ANALYTIC(29) 0               SE_ANALYTIC(32);
                              SE_ANALYTIC(30) SE_ANALYTIC(31) SE_ANALYTIC(33);
-                             0               0               SE_ANALYTIC(34);
-                             ];
+                             0               0               SE_ANALYTIC(34)];
 
 SVAR_1Regime_SE = OUTPUT_Table2_SE_Analytic(1:3,:);
 SVAR_2Regime_SE = OUTPUT_Table2_SE_Analytic(4:6,:);
 SVAR_3Regime_SE = OUTPUT_Table2_SE_Analytic(7:9,:);
 SVAR_4Regime_SE = OUTPUT_Table2_SE_Analytic(10:12,:);
 
-SVAR_1Regime = SVAR_1Regime;
-SVAR_2Regime = SVAR_2Regime;
-SVAR_3Regime = SVAR_3Regime;
-SVAR_4Regime = SVAR_4Regime;
 
-%% Output Upper Panel
+%% Output Endogenous Uncertainty
+
 disp('----------------------------------------------------------------')
-disp('----------------------- UPPER PANEL ----------------------------')
+disp('------------------ ENDOGENOUS UNCERTAINTY ----------------------')
 disp('----------------------------------------------------------------')
 disp('----------------------- Coefficients ---------------------------')
 
 disp('B=')
-disp(SVAR_1Regime_UP)
+disp(SVAR_1Regime_END)
 disp('B+Q2=')
-disp(SVAR_2Regime_UP)
+disp(SVAR_2Regime_END)
 disp('B+Q2+Q3=')
-disp(SVAR_3Regime_UP)
+disp(SVAR_3Regime_END)
 disp('B+Q2+Q3+Q4=')
-disp(SVAR_4Regime_UP)
+disp(SVAR_4Regime_END)
 
 disp('---------------------- Standard Errors -------------------------')
 
 disp('B=')
-disp(SVAR_1Regime_SE_UP)
+disp(SVAR_1Regime_SE_END)
 disp('B+Q2=')
-disp(SVAR_2Regime_SE_UP)
+disp(SVAR_2Regime_SE_END)
 disp('B+Q2+Q3=')
-disp(SVAR_3Regime_SE_UP)
+disp(SVAR_3Regime_SE_END)
 disp('B+Q2+Q3+Q4=')
-disp(SVAR_4Regime_SE_UP)
+disp(SVAR_4Regime_SE_END)
 
 
-disp('---- 2 overidentification restrictions: ----')
+disp('-------------- 2 overidentification restrictions: --------------')
 disp('Test statistics:')
-disp(LR_Test_UP)
+disp(LR_Test_END)
 disp('P-value:')
-disp(PVarl_UP)
+disp(PVarl_END)
 
 
-%% Output Lower Panel
+%% Output Exogenous Uncertainty
+
 disp('----------------------------------------------------------------')
-disp('----------------------- LOWER PANEL ----------------------------')
+disp('------------------- EXOGENOUS UNCERTAINTY ----------------------')
 disp('----------------------------------------------------------------')
 disp('----------------------- Coefficients ---------------------------')
 
@@ -1281,20 +1161,21 @@ disp(SVAR_3Regime_SE)
 disp('B+Q2+Q3+Q4=')
 disp(SVAR_4Regime_SE)
 
-disp('---- 5 overidentification restrictions ----')
+disp('-------------- 4 overidentification restrictions: --------------')
 disp('Test statistics:')
-disp(LR_Test_LW)
+disp(LR_Test_EX)
 disp('P-value:')
-disp(PVar_LW)
+disp(PVar_EX)
 
+
+%% Output Model Comparison
 
 disp('----------------------------------------------------------------')
 disp('--------------------- MODEL COMPARISON -------------------------')
 disp('----------------------------------------------------------------')
-disp('----------------------- Coefficients ---------------------------')
 
-LR_model_comp = - 2*(LK_Estimation_upper - LK_Estimation_lower);
-PVar_model_comp = 1 - chi2cdf(LR_model_comp, StructuralParam_upper - StructuralParam_lower);
+LR_model_comp = - 2*(LK_Estimation_end - LK_Estimation_ex);
+PVar_model_comp = 1 - chi2cdf(LR_model_comp, StructuralParam_end - StructuralParam_ex);
 
 disp('Test statistics:')
 disp(LR_model_comp)
@@ -1302,7 +1183,7 @@ disp('P-value:')
 disp(PVar_model_comp)
 
 
-%% Step 4: IRFs
+%% Step 4: Estimation of Bootstrap Confidence Intervals for IRFs of the Model with Exogenous Uncertainty
 
 BootstrapIterations = 500;
 HorizonIRF = 60;  
@@ -1315,13 +1196,13 @@ global Sigma_boot_4Regime
 
 for boot = 1 : BootstrapIterations
 
-    %  **** iid bootstrap ****
     %Residuals_Boot = zeros(TAll-NLags,M);
     %Residuals_Boot(1:TB1,:) = mvnrnd(zeros(M,1),Sigma_1Regime,T1+NLags);
     %Residuals_Boot(TB1+1:TB2,:) = mvnrnd(zeros(M,1),Sigma_2Regime,T2);
     %Residuals_Boot(TB2+1:TB3,:) = mvnrnd(zeros(M,1),Sigma_3Regime,T3);
     %Residuals_Boot(TB3+1:TAll,:) = mvnrnd(zeros(M,1),Sigma_4Regime,T4-NLags);
 
+    % Non-Parametric iid Bootstrap
     TBoot=datasample(1:T1,T1);
     Residuals_Boot(1:TB1-NLags,:) = Errors_1Regime(TBoot,:);
     TBoot=datasample(1:T2,T2);
@@ -1366,27 +1247,26 @@ for boot = 1 : BootstrapIterations
     DataSet_Bootstrap=DataSet_Bootstrap(1+NLags:end,:);
     
     VAR = varm(M,NLags);
-    [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(1:TB1,:));
+    [EstVAR_Boot,~,~,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(1:TB1,:));
     mP_boot_1Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
     Sigma_boot_1Regime = (Residuals_Boot'*Residuals_Boot)/T1;
 
-    [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB1+1:TB2,:));
+    [EstVAR_Boot,~,~,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB1+1:TB2,:));
     mP_boot_2Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
     Sigma_boot_2Regime = (Residuals_Boot'*Residuals_Boot)/T2;
 
-    [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB2+1:TB3,:));
+    [EstVAR_Boot,~,~,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB2+1:TB3,:));
     mP_boot_3Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
     Sigma_boot_3Regime = (Residuals_Boot'*Residuals_Boot)/T3;
 
-    [EstVAR_Boot,EstSE_Boot,logLikVAR_Boot,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB3+1:TAll-NLags,:));
+    [EstVAR_Boot,~,~,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB3+1:TAll-NLags,:));
     mP_boot_4Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
     Sigma_boot_4Regime = (Residuals_Boot'*Residuals_Boot)/T4;
-
     
     options = optimset('MaxFunEvals',200000,'TolFun',1e-500,'MaxIter',200000,'TolX',1e-50);
     BootStructuralParam = 20;
     Initial_Structural_Boot=0.5*ones(BootStructuralParam,1);
-    [StructuralParam_Estimation_Boot,Likelihood_SVAR,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted_Bootstrap',Initial_Structural_Boot',options);
+    [StructuralParam_Estimation_Boot,Likelihood_SVAR,~,~,~,~] = fminunc('Likelihood_SVAR_Restricted_Bootstrap',Initial_Structural_Boot',options);
 
     C_Boot =[StructuralParam_Estimation_Boot(1) 0                                  0;
              StructuralParam_Estimation_Boot(2) StructuralParam_Estimation_Boot(3) 0;
@@ -1409,7 +1289,7 @@ for boot = 1 : BootstrapIterations
     SVAR_3Regime_Boot = C_Boot + Q2_Boot + Q3_Boot;
     SVAR_4Regime_Boot = C_Boot + Q2_Boot + Q3_Boot + Q4_Boot;
 
-    % Sign normalization (recall that identification holds up to sign normalization)   
+    % Sign Normalization   
     if SVAR_1Regime_Boot(1,1)<0
     SVAR_1Regime_Boot(:,1)=-SVAR_1Regime_Boot(:,1);
     end
@@ -1482,12 +1362,12 @@ IRF_Inf_Boot_4Regime = prctile(TETA_Boot_4Regime,quant(1),4);
 IRF_Sup_Boot_4Regime = prctile(TETA_Boot_4Regime,quant(2),4);
 
 
+%% Step 5: Estimation and Representation of Structural IRFs for the Model with Exogenous Uncertainty
 
-% ------------------------------------------------------------------------
+% -------------------------------------------------------------------------
+%       All 4 Volatility Regimes in one plot (No confidence bands)
+% -------------------------------------------------------------------------
 
-
-
-% All 4 Volatility Regimes in one plot (No confidence bands)
 % [1-blue 2-red 3-yellow 4-purple]
 LineWidth_IRF = 1.5;
 FontSizeIRFGraph = 14;
@@ -1545,10 +1425,11 @@ for i = 1:3
 end
 
 
-% ---------------------------------------------------------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
+%                       4 Regime-specific graphs
+% -------------------------------------------------------------------------
 
-% 4 Regime-specific graphs
 for r = 1:4
 
 LineWidth_IRF = 1.5;
@@ -1566,7 +1447,7 @@ YLabel{3,1}='$$UF$$';
 
 index = 1;
 
-C_IRF = eval(sprintf('SVAR_%dRegime', r));                               % instantaneous impact at h=0
+C_IRF = eval(sprintf('SVAR_%dRegime', r));                                  % instantaneous impact at h=0
 CompanionMatrix = eval(sprintf('CompanionMatrix_%dRegime', r));
 IRF_Inf_Boot = eval(sprintf('IRF_Inf_Boot_%dRegime', r));
 IRF_Sup_Boot = eval(sprintf('IRF_Sup_Boot_%dRegime', r));
@@ -1602,6 +1483,4 @@ for i = 1:3
         index = index + 1;
     end
 end
-
-
 end
