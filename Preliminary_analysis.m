@@ -1,5 +1,5 @@
 %% Structural Macroeconometrics - Exam Project
-% Davide Delfino ()
+% Davide Delfino (0001126595)
 % Giovanni Nannini (0001128796)
 % Topic 2
 
@@ -33,30 +33,28 @@ UF=data(:,2); % Macro Uncertainty variable
 UM=data(:,3); % Financial Uncertainty variable
 W = [UM, Y, UF]; % Replace with your actual data
 
-figure(1);
 
-% Plot delle variabili UM e UF
-plot(time, data(:, 2), 'b', 'DisplayName', 'UM'); % Prima colonna di data per UM
+% Uncertainty indeces plot
+figure
+plot(time, data(:, 2), 'b', 'DisplayName', 'UM');
 hold on; 
-plot(time, data(:, 3), 'r', 'DisplayName', 'UF'); % Seconda colonna di data per UF
+plot(time, data(:, 3), 'r', 'DisplayName', 'UF');
 hold off;
+xlabel('Time');
+title('Time Series of UM and UF');
+legend;
+grid on;
 
-% Personalizzazione del grafico
-xlabel('Time'); % Etichetta asse x
-ylabel('Value'); % Etichetta asse y
-title('Time Series of UM and UF'); % Titolo del grafico
-legend; % Mostra la legenda
-grid on; % Attiva la griglia
 
-%% Step 0: Descriptive analysis
+%% Step 1: Descriptive analysis
 
-varNames = {'Macroeconomics uncertainty', 'Real economic activity', 'Financial uncertainty'};
+varNames = {'Macroeconomic uncertainty', 'Real economic activity', 'Financial uncertainty'};
 
 % ACF e PACF For each variable
-numVars = size(W, 2); % 1*3
+numVars = size(W, 2);
 
-for i = 1:numVars
-    figure; 
+for i = 1 : numVars
+    figure
     
    % Time series graph
     subplot(3,1,1);
@@ -77,105 +75,44 @@ for i = 1:numVars
     title(['Partial Autocorrelation for ', varNames{i}]);
 end
 
+% Dickey-Fuller test for stationarity
 numVars = size(W, 2); 
 for i = 1:numVars
     [h, pValue, stat, cValue] = adftest(W(:,i));
     fprintf('Variable %d: h = %d, pValue = %.4f, stat = %.4f\n', i, h, pValue, stat);
 end
 
-% Stationarity
-W_diff = diff(W); % First differences
 
-figure;
-plot(W_diff)
-
-numVars = size(W_diff, 2); 
-for i = 1:numVars
-    [h, pValue, stat, cValue] = adftest(W_diff(:,i));
-    fprintf('Variable %d: h = %d, pValue = %.4f, stat = %.4f\n', i, h, pValue, stat);
-end
-
-%% optimal number of lags for a Vector Autoregression (VAR)
-
-% Assuming W_diff is your multivariate time series matrix
-% Rows are observations, columns are variables
-% Define parameters
-[maxLag, numObs, numVars] = deal(10, size(W_diff, 1), size(W_diff, 2)); % max lag, observations, variables
-AIC = zeros(maxLag, 1);  % To store AIC values for each lag
-BIC = zeros(maxLag, 1);  % To store BIC values for each lag
-
-% Loop over lags
-for p = 1:maxLag
-    % Fit the VAR model using OLS for lag 'p'
-    Y = W_diff((p+1):end, :);  % Dependent variables
-    X = [];
-    for lag = 1:p
-        X = [X, W_diff((p+1-lag):(end-lag), :)];  % Lagged predictors
-    end
-    
-    % Add a constant term
-    X = [ones(size(X, 1), 1), X];
-    
-    % Estimate coefficients
-    beta = (X' * X) \ (X' * Y);
-    residuals = Y - X * beta;
-    
-    % Compute log-likelihood
-    sigma = (residuals' * residuals) / size(residuals, 1);  % Covariance of residuals
-    logL = -0.5 * numObs * numVars * log(2 * pi) - 0.5 * numObs * log(det(sigma)) - 0.5 * trace(residuals * inv(sigma) * residuals');
-    
-    % Compute AIC and BIC
-    numParams = numVars * (p * numVars + 1);  % Number of parameters
-    AIC(p) = -2 * logL + 2 * numParams;
-    BIC(p) = -2 * logL + log(numObs) * numParams;
-end
-
-% Find the optimal lag
-[~, optimalLag_AIC] = min(AIC);
-[~, optimalLag_BIC] = min(BIC);
-
-% Display the results
-disp(['Optimal lag based on AIC: ', num2str(optimalLag_AIC)]);
-disp(['Optimal lag based on BIC: ', num2str(optimalLag_BIC)]);
-
-% Plot AIC and BIC values
-figure;
-plot(1:maxLag, AIC, '-o', 'DisplayName', 'AIC');
-hold on;
-plot(1:maxLag, BIC, '-o', 'DisplayName', 'BIC');
-xlabel('Lag');
-ylabel('Criterion Value');
-legend;
-title('AIC and BIC for VAR Model');
-grid on;
-
-
-%% Step 1: Rolling Window Analysis for Variance Structural Breaks 
+%% Step 2: Rolling Window Analysis for the Identification of Volatility Regimes
 
 % Set parameters
-p = 3;                                                                      % Number of lags
+p = 4;                                                                      % Number of lags
 t0 = 120;                                                                   % Initial time period for rolling wondows
+TB1 = 284;                                                                  % First volatility break: 1984-M3
+TB2 = 569;                                                                  % Second volatility break: 2007-M12
+TB3 = 715;                                                                  % Third volatility break: 2020-M2
+
 
 % Recursive estimation
-for t = t0:size(W_diff,1)
-    model_recursive = estimate(varm(3,p), W_diff(1:t,:));                        % Estimate VAR
-    residuals = infer(model_recursive, W_diff(1:t,:));                           % Compute residuals
+for t = t0:size(W,1)
+    model_recursive = estimate(varm(3,p), W(1:t,:));                        % Estimate VAR
+    residuals = infer(model_recursive, W(1:t,:));                           % Compute residuals
     Sigma_recursive(:,:,t) = cov(residuals);                                % Store covariance matrix
 end
 
 % 10-years Rolling window estimation
-window_size = 10 * 12; % 10 years 
-for t = window_size:size(W_diff,1)
-    model_rolling = estimate(varm(3,p), W_diff(t-window_size+1:t,:));
-    residuals = infer(model_rolling, W_diff(t-window_size+1:t,:));
+window_size = 10 * 12;
+for t = window_size:size(W,1)
+    model_rolling = estimate(varm(3,p), W(t-window_size+1:t,:));
+    residuals = infer(model_rolling, W(t-window_size+1:t,:));
     Sigma_rolling_10(:,:,t) = cov(residuals);
 end
 
 % 15-years Rolling window estimation
-window_size = 15 * 12; % 10 years 
-for t = window_size:size(W_diff,1)
-    model_rolling = estimate(varm(3,p), W_diff(t-window_size+1:t, :));
-    residuals = infer(model_rolling, W_diff(t-window_size+1:t, :));
+window_size = 15 * 12; 
+for t = window_size:size(W,1)
+    model_rolling = estimate(varm(3,p), W(t-window_size+1:t, :));
+    residuals = infer(model_rolling, W(t-window_size+1:t, :));
     Sigma_rolling_15(:,:,t) = cov(residuals);
 end
 
@@ -189,10 +126,10 @@ for i = 1:3
         SR_15 = squeeze(Sigma_rolling_15(i,j,180:end));
         
         subplot(3,3,(i-1)*3+j);
-        plot(time(121:end), SR_REC, 'b', 'LineWidth', 1.5); hold on
-        plot(time(121:end), SR_10, 'r', 'LineWidth', 1.5);
-        plot(time(181:end), SR_15, 'Color', [1, 0.5, 0], 'LineWidth', 1.5);
-        xline([time(284) time(569) time(716)], '--k', 'LineWidth', 1.5);    % Breakpoints: 1984:M3(t=284), 2007:M12(t=569), 2020:M3(t=716)
+        plot(time(120:end), SR_REC, 'b', 'LineWidth', 1.5); hold on
+        plot(time(120:end), SR_10, 'r', 'LineWidth', 1.5);
+        plot(time(180:end), SR_15, 'Color', [1, 0.5, 0], 'LineWidth', 1.5);
+        xline([time(TB1) time(TB2) time(TB3)], '--k', 'LineWidth', 1.5);    % Breakpoints: 1984:M3(t=284), 2007:M12(t=569), 2020:M2(t=715)
 
         if i == 1 && j == 1                                                 % Titles
             t = '$Var(U_{Mt})$';
@@ -217,37 +154,8 @@ for i = 1:3
 end
 
 
-%% Chow Tests
-% H0: no structural breaks
-% Define your data matrix
+%% Step 3: Reduced-Form VAR Estimation and Diagnostic Tests 
 
-% Indipendenti variables plus constant
-X = [ones(size(UM)), UM, UF];
-
-% Breakpoint List
-breakpoints = [284, 569, 716]; %1984:M3, 2007:M12, 2020:M3
-
-% Loop to run a test for each breakpoint
-for i = 1:length(breakpoints)
-    bp = breakpoints(i);
-    fprintf('Chow Test for observation %d:\n', bp);
-    
-    % Chow Test
-    [h, pValue, stat, cValue] = chowtest(X, Y, bp);
-    
-    % Interpretazione dei risultati
-    if h == 1
-        fprintf('Significant breakpoints (p-value: %.4f).\n', pValue);
-    else
-        fprintf('No breakpoints (p-value: %.4f).\n', pValue);
-    end
-    
-    % Stampare i risultati dettagliati
-    fprintf('Chow Test Statistics: %.4f\n', stat);
-    fprintf('Critical Value: %.4f\n\n', cValue);
-end
-
-%% Table 1
 % Define parameters
 numLags = 3;
 [numObs, numVars] = size(W);
@@ -255,13 +163,13 @@ alpha = 0.5;
 
 % Whole sample estimation
 Mdl = varm(numVars, numLags);
-EstMdl = estimate(Mdl, W_diff);
+EstMdl = estimate(Mdl, W);
 Sigma_eta = EstMdl.Covariance;
 Corr_Sigma_eta = corrcov(Sigma_eta);
 
 % Residuals and log-likelihood for the whole sample
-Res_whole = infer(EstMdl, W_diff);
-T_whole = size(W_diff, 1);
+Res_whole = infer(EstMdl, W);
+T_whole = size(W, 1);
 logLikelihood_whole = -0.5 * T_whole * (numVars * log(2 * pi) + log(det(Sigma_eta)) + trace((Res_whole' * Res_whole) / Sigma_eta));
 
 % T-test for correlation
@@ -273,27 +181,23 @@ Significant_Corr_whole = abs(t_values) > t_crit;
 LogLikelihoods = zeros(5, 1);
 LogLikelihoods(end) = logLikelihood_whole;
 
-% W_diff + Time 
-W_diff_table = array2table(W_diff, 'VariableNames', strcat("Var", string(1:size(W_diff, 2)))); 
-W_diff_table.Date = time(2:end); 
+% W + Time 
+W_table = array2table(W, 'VariableNames', strcat("Var", string(1:size(W, 2)))); 
+W_table_Date = time(2:end); 
 
-% Break dates
-TB1=283; 
-TB2=568;
-TB3=715;
 
 % For subperiods, divide the data and repeat the process
-subPeriod_GI = W_diff(1:TB1, :);                                            % Mdl_GI = First subperiod   --> GI:1960:M8–1984:M3 (T = 283)
-subPeriod_GM = W_diff(TB1+1-numLags:TB2, :);                                % Mdl_GM = Second subperiod  --> GM:1984:M4–2007:M12 (T =284)
-subPeriod_GR = W_diff(TB2+1-numLags:TB3, :);                                % Mdl_GR = Third subperiod   --> GR+SR:2008:M1–2020:M2 (T=146)
-subPeriod_C19 = W_diff(TB3+1-numLags:end, :);                               % Mdl_C19 = Firth subperiod  --> Covid-19 : 2020:M3–2024:M7 (T=51)
+subPeriod_GI = W(1:TB1, :);                                               % Mdl_GI = First subperiod   --> GI:1960:M8–1984:M3 (T = 283)
+subPeriod_GM = W(TB1+1-numLags:TB2, :);                                   % Mdl_GM = Second subperiod  --> GM:1984:M4–2007:M12 (T =284)
+subPeriod_GR = W(TB2+1-numLags:TB3, :);                                   % Mdl_GR = Third subperiod   --> GR+SR:2008:M1–2020:M2 (T=146)
+subPeriod_C19 = W(TB3+1-numLags:end, :);                                  % Mdl_C19 = Firth subperiod  --> Covid-19 : 2020:M3–2024:M7 (T=51)
 
 % Size three regimes
 T1 = size(subPeriod_GI,1)-numLags;
 T2 = size(subPeriod_GM,1)-numLags;
 T3 = size(subPeriod_GR,1)-numLags;
 T4 = size(subPeriod_C19,1)-numLags;
-TAll = size(W_diff,1)-numLags;
+TAll = size(W,1)-numLags;
 
 % Subperiod estimation
 subPeriods = {subPeriod_GI, subPeriod_GM, subPeriod_GR, subPeriod_C19};
@@ -324,7 +228,7 @@ for i = 1:numel(subPeriods)
     t_crit = tinv(1 - alpha/2, T_sub - 2); 
     Significant_Corr{i} = abs(t_values) > t_crit; 
     
-    % Residuauls
+    % Residuals
     Res_sub = infer(EstMdl_sub{i}, subPeriodData);
     
     % log-likelihood
@@ -339,7 +243,7 @@ end
 disp('Log-Likelihoods for each subperiod:');
 disp(LogLikelihoods);
 
-% Structural stability test HO( pi-greco sigma) 
+% Structural stability test (HO) 
 LL_restricted = logLikelihood_whole;
 LL_unrestricted = sum(LogLikelihoods(1:4));
 
@@ -361,7 +265,7 @@ else
     disp('Fail to reject the null hypothesis: Parameters are constant across subperiods.');
 end
 
-% Homoskedasticity test (H0' Sigma)
+% Homoskedasticity test (H0')
 Sigma_eta_residual = cov(Res_whole);
 LL_whole_cov = -0.5 * T_whole * (log(det(Sigma_eta)) + trace(Sigma_eta \ Sigma_eta_residual));
 
@@ -373,7 +277,7 @@ for i = 1:numel(subPeriods)
 end
 
 % LR statistic and p-value for homoskedasticity test
-LR_stat_cov = -2 * (LL_whole_cov - LL_sub_cov);
+LR_stat_cov = - 2 * (LL_whole_cov - LL_sub_cov);
 numRestrictions_cov = numVars^2 * (numel(subPeriods) - 1);
 p_value_cov = 1 - chi2cdf(LR_stat_cov, numRestrictions_cov);
 
@@ -408,7 +312,7 @@ end
 % Doornik–Hansen Test
 
 % Compute residuals
-Res = infer(EstMdl, W_diff);
+Res = infer(EstMdl, W);
 
 % Number of observations and variables
 [T, k] = size(Res);
@@ -446,7 +350,7 @@ end
 % LM-Type Test for Residual Autocorrelation (AR4)
 
 % Residuals from the VAR model
-Res = infer(EstMdl_sub{1}, W_diff);
+Res = infer(EstMdl_sub{1}, W);
 
 % Maximum lag to test
 maxLag = 4;
