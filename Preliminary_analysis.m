@@ -45,6 +45,58 @@ title('Time Series of UM and UF');
 legend;
 grid on;
 
+%% Macro and Financial Uncertainty Over Time
+
+UM_normalized = (UM - mean(UM)) / std(UM);
+UF_normalized = (UF - mean(UF)) / std(UF);
+
+cov_UM_Y = cov(UM_normalized, Y);
+cov_UF_Y = cov(UF_normalized, Y);
+
+corr_UM_Y = corrcov(cov_UM_Y);
+corr_UF_Y = corrcov(cov_UF_Y);
+
+data = dataTable{2:end-4, [3, 5, 8, 11]};
+recession = data(:,4);
+
+UM_threshold = mean(UM_normalized) + 1.65 * std(UM_normalized);
+UF_threshold = mean(UF_normalized) + 1.65 * std(UF_normalized);
+
+UM_exceeds = UM_normalized > UM_threshold;
+UF_exceeds = UF_normalized > UF_threshold;
+
+figure;
+
+% Subplot (UM)
+subplot(2, 1, 1);
+hold on;
+area(time, recession * max(UM_normalized), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'DisplayName', 'Recession');
+area(time, recession * min(UF_normalized), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'HandleVisibility', 'off');
+plot(time, UM_normalized, 'b', 'LineWidth', 1.5, 'DisplayName', 'Uncertainty');
+yline(UM_threshold, 'r--', 'LineWidth', 1, 'DisplayName', '1.65 std');
+plot(time(UM_exceeds), UM_normalized(UM_exceeds), 'k.', 'MarkerSize', 10, 'DisplayName', 'Above 1.65 std');
+title('Aggregate Macro Uncertainty U_M (Normalized)');
+xlabel('Year');
+ylabel('U_M');
+legend('Location', 'northwest');
+hold off;
+
+% Subplot (UF)
+subplot(2, 1, 2);
+hold on;
+area(time, recession * max(UF_normalized), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'DisplayName', 'Recession');
+area(time, recession * min(UF_normalized), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'HandleVisibility', 'off');
+plot(time, UF_normalized, 'r', 'LineWidth', 1.5, 'DisplayName', 'Uncertainty');
+yline(UF_threshold, 'r--', 'LineWidth', 1, 'DisplayName', '1.65 std');
+plot(time(UF_exceeds), UF_normalized(UF_exceeds), 'k.', 'MarkerSize', 10, 'DisplayName', 'Above 1.65 std');
+title('Aggregate Financial Uncertainty U_F (Normalized)');
+xlabel('Year');
+ylabel('U_F');
+legend('Location','northwest');
+hold off;
+
+sgtitle('Macro and Financial Uncertainty Over Time');
+
 
 %% Step 1: Descriptive analysis
 

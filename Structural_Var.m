@@ -1126,7 +1126,6 @@ disp(SVAR_3Regime_SE_END)
 disp('B+Q2+Q3+Q4=')
 disp(SVAR_4Regime_SE_END)
 
-
 disp('-------------- 2 overidentification restrictions: --------------')
 disp('Test statistics:')
 disp(LR_Test_END)
@@ -1410,7 +1409,7 @@ for i = 1:3
             IRF = squeeze(All_IRFs(i, j, :, r));
             plot(x, IRF, 'Color', colors(r, :), 'LineWidth', LineWidth_IRF, 'DisplayName', sprintf('Regime %d', r));
         end
-        plot(zeros(HorizonIRF + 1, 1), 'k', 'LineWidth', 1);
+        plot(zeros(HorizonIRF + 1, 1), 'k', 'LineWidth', 1, 'HandleVisibility', 'off');
 
         ylabel(YLabel{i,1}, 'Interpreter', 'latex');
         title(SubTitles{1,j}, 'Interpreter', 'latex');
