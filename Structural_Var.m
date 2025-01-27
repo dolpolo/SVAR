@@ -42,7 +42,8 @@ global CommonPI
 % 10 UM12   US macroeconomic uncertainty measure 12-month ahead
 % // uncertainty measures taken from Sydney Ludvigson website
 
-NLags = 4; % Number of lags of the reduced form VARs
+% Number of lags for reduced-form VAR
+NLags = 4; % Notice: the code is fully automated, change only this parameter to achieve results with different lags
 options = optimset('MaxFunEvals',200000,'TolFun',1e-1000,'MaxIter',200000,'TolX',1e-1000);   
 
 LimitTEST = 1.64;
@@ -59,9 +60,9 @@ HorizonIRF = 60;
 DataSet = readmatrix('Topic 2 Data.xlsx');
 
 % Break dates
-TB1=284; % 1984 - M4
-TB2=569; % 2007 - M12
-TB3=715; % 2020 - M2
+TB1=284; % 1984:M3
+TB2=569; % 2007:M12
+TB3=715; % 2020:M2
 
 %% Step 0: Set up
 DataSet = DataSet(2:end-4, [3, 5, 8]);
@@ -238,7 +239,7 @@ LK_2Regime = -Log_LK;
 Sigma_2Regime = Omega_LK;
 Omega_2Regime = [Omega_LK; StandardErrors_Omega_M];
 Beta_2Regime = [Beta_LK'; StandardErrors_BETA];
-Rho__2Regime = Rho_LK;
+Rho_2Regime = Rho_LK;
 
 
 % ----------------------------------------------------------------------
@@ -347,7 +348,6 @@ PVarl_END = 1 - chi2cdf((LR_Test_END),24-StructuralParam);
 Parameters = [ [1:StructuralParam]' StructuralParam_Estiamtion SE_Estimation]; 
 
 % Define the matrices of the structural parameters
-
 SVAR_C=[StructuralParam_Estiamtion(1) StructuralParam_Estiamtion(3) 0;
         StructuralParam_Estiamtion(2) StructuralParam_Estiamtion(4) 0;
         0                             0                             StructuralParam_Estiamtion(5)];
@@ -723,7 +723,7 @@ StructuralParam_ex = 20;
 InitialValue_SVAR = 0.5*ones(StructuralParam,1);
 
 % ML function
-[StructuralParam_Estiamtion_MATRIX,Likelihood_MATRIX,exitflag,output,grad,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted',InitialValue_SVAR',options);
+[StructuralParam_Estiamtion_MATRIX,Likelihood_MATRIX,~,~,~,Hessian_MATRIX] = fminunc('Likelihood_SVAR_Restricted',InitialValue_SVAR',options);
 
 StructuralParam_Estiamtion = StructuralParam_Estiamtion_MATRIX;
 LK_Estimation_ex = Likelihood_MATRIX;
@@ -1214,52 +1214,49 @@ for boot = 1 : BootstrapIterations
     DataSet_Bootstrap=zeros(T1+NLags,M);
     DataSet_Bootstrap(1:NLags,:)=DataSet_1Regime(1:NLags,:);                % set the first p elements equal to the original sample values
 
+    
         for t = 1+NLags : TB1
-            DataSet_Bootstrap(t,:) = Beta_1Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_1Regime(2:4,:) + ...
-                                     DataSet_Bootstrap(t-2,:)*Beta_1Regime(5:7,:) + ...
-                                     DataSet_Bootstrap(t-3,:)*Beta_1Regime(8:10,:) + ...
-                                     DataSet_Bootstrap(t-4,:)*Beta_1Regime(11:13,:) + ...
-                                     Residuals_Boot(t-NLags,:);
+            DataSet_Bootstrap(t,:) = Beta_1Regime(1,:) + Residuals_Boot(t-NLags,:);
+            for p = 1:NLags
+            DataSet_Bootstrap(t,:) = DataSet_Bootstrap(t,:) + DataSet_Bootstrap(t-p,:)*Beta_1Regime(3*p-1:3*p+1,:);
+            end                                                         
         end
         for t = TB1+1 : TB2
-            DataSet_Bootstrap(t,:) = Beta_2Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_2Regime(2:4,:) + ...
-                                     DataSet_Bootstrap(t-2,:)*Beta_2Regime(5:7,:) + ...
-                                     DataSet_Bootstrap(t-3,:)*Beta_2Regime(8:10,:) + ...
-                                     DataSet_Bootstrap(t-4,:)*Beta_2Regime(11:13,:) + ...
-                                     Residuals_Boot(t-NLags,:);
+            DataSet_Bootstrap(t,:) = Beta_2Regime(1,:) + Residuals_Boot(t-NLags,:);
+            for p = 1:NLags
+            DataSet_Bootstrap(t,:) = DataSet_Bootstrap(t,:) + DataSet_Bootstrap(t-p,:)*Beta_2Regime(3*p-1:3*p+1,:);
+            end
         end
         for t = TB2+1 : TB3
-            DataSet_Bootstrap(t,:) = Beta_3Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_3Regime(2:4,:) + ...
-                                     DataSet_Bootstrap(t-2,:)*Beta_3Regime(5:7,:) + ...
-                                     DataSet_Bootstrap(t-3,:)*Beta_3Regime(8:10,:) + ...
-                                     DataSet_Bootstrap(t-4,:)*Beta_3Regime(11:13,:) + ...
-                                     Residuals_Boot(t-NLags,:);
+            DataSet_Bootstrap(t,:) = Beta_3Regime(1,:) + Residuals_Boot(t-NLags,:);
+            for p = 1:NLags
+            DataSet_Bootstrap(t,:) = DataSet_Bootstrap(t,:) + DataSet_Bootstrap(t-p,:)*Beta_3Regime(3*p-1:3*p+1,:);
+            end
         end
         for t = TB3+1 : TAll
-            DataSet_Bootstrap(t,:) = Beta_4Regime(1,:) + DataSet_Bootstrap(t-1,:)*Beta_4Regime(2:4,:) + ...
-                                     DataSet_Bootstrap(t-2,:)*Beta_4Regime(5:7,:) + ...
-                                     DataSet_Bootstrap(t-3,:)*Beta_4Regime(8:10,:) + ...
-                                     DataSet_Bootstrap(t-4,:)*Beta_4Regime(11:13,:) + ...
-                                     Residuals_Boot(t-NLags,:);
+            DataSet_Bootstrap(t,:) = Beta_4Regime(1,:) + Residuals_Boot(t-NLags,:);
+            for p = 1:NLags
+            DataSet_Bootstrap(t,:) = DataSet_Bootstrap(t,:) + DataSet_Bootstrap(t-p,:)*Beta_4Regime(3*p-1:3*p+1,:);
+            end
         end
 
     DataSet_Bootstrap=DataSet_Bootstrap(1+NLags:end,:);
     
     VAR = varm(M,NLags);
     [EstVAR_Boot,~,~,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(1:TB1,:));
-    mP_boot_1Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
+    mP_boot_1Regime = [EstVAR_Boot.AR{1,1:NLags}];
     Sigma_boot_1Regime = (Residuals_Boot'*Residuals_Boot)/T1;
 
     [EstVAR_Boot,~,~,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB1+1:TB2,:));
-    mP_boot_2Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
+    mP_boot_2Regime = [EstVAR_Boot.AR{1,1:NLags}];
     Sigma_boot_2Regime = (Residuals_Boot'*Residuals_Boot)/T2;
 
     [EstVAR_Boot,~,~,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB2+1:TB3,:));
-    mP_boot_3Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
+    mP_boot_3Regime = [EstVAR_Boot.AR{1,1:NLags}];
     Sigma_boot_3Regime = (Residuals_Boot'*Residuals_Boot)/T3;
 
     [EstVAR_Boot,~,~,Residuals_Boot] = estimate(VAR,DataSet_Bootstrap(TB3+1:TAll-NLags,:));
-    mP_boot_4Regime = [EstVAR_Boot.AR{1,1} EstVAR_Boot.AR{1,2} EstVAR_Boot.AR{1,3} EstVAR_Boot.AR{1,4}];
+    mP_boot_4Regime = [EstVAR_Boot.AR{1,1:NLags}];
     Sigma_boot_4Regime = (Residuals_Boot'*Residuals_Boot)/T4;
     
     options = optimset('MaxFunEvals',200000,'TolFun',1e-500,'MaxIter',200000,'TolX',1e-50);
