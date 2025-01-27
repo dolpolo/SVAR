@@ -7,7 +7,7 @@ clc, clear
 
 global p
 
-dataTable = readtable('Topic 2 Data.xlsx');
+dataTable = readtable('JLN_data.xlsx');
 time = datetime(dataTable{2:end-4, 1}, 'InputFormat', 'yyyy-MM-dd');
 data = dataTable{2:end-4, [3, 5, 8]};
 
@@ -45,6 +45,31 @@ title('Time Series of UM and UF');
 legend;
 grid on;
 
+%% Dataset representation
+
+data = dataTable{2:end-4, [3, 5, 8, 11]};
+recession = data(:,4);
+length_rec= [-14.5, 7];
+figure;
+
+area(time, recession * range(length_rec), 'FaceColor', [0.9, 0.9, 0.9], ...
+    'EdgeColor', 'none', 'DisplayName', 'Recession');
+hold on;
+area(time, recession * min(length_rec), 'FaceColor', [0.9, 0.9, 0.9], ...
+    'EdgeColor', 'none', 'HandleVisibility', 'off');
+hold on;
+plot(time, UM, 'Color', [0, 0.4470, 0.7410], 'LineWidth', 1.5, 'DisplayName', 'Macroeconomic Uncertainty');
+plot(time, Y, 'Color', [0.5 0.5 0.5], 'LineWidth', 0.3, ...
+    'DisplayName', 'Industrial Production Growth');
+plot(time, UF, 'Color', [0.8500, 0.3250, 0.0980], 'LineWidth', 1.5, 'DisplayName', 'Financial Uncertainty');
+title('Time Series of Data');
+xlabel('Year');
+ylabel('Level');
+legend('Location', 'southwest','FontSize',13);
+ylim([-14.5, 7]);
+hold off;
+
+
 %% Macro and Financial Uncertainty Over Time
 
 UM_normalized = (UM - mean(UM)) / std(UM);
@@ -56,22 +81,21 @@ cov_UF_Y = cov(UF_normalized, Y);
 corr_UM_Y = corrcov(cov_UM_Y);
 corr_UF_Y = corrcov(cov_UF_Y);
 
-data = dataTable{2:end-4, [3, 5, 8, 11]};
-recession = data(:,4);
-
 UM_threshold = mean(UM_normalized) + 1.65 * std(UM_normalized);
 UF_threshold = mean(UF_normalized) + 1.65 * std(UF_normalized);
 
 UM_exceeds = UM_normalized > UM_threshold;
 UF_exceeds = UF_normalized > UF_threshold;
+length_rec= [-1.95, 5.95];
+length_rec_1= [-1.95, 3.95];
 
 figure;
 
 % Subplot (UM)
 subplot(2, 1, 1);
 hold on;
-area(time, recession * max(UM_normalized), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'DisplayName', 'Recession');
-area(time, recession * min(UF_normalized), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'HandleVisibility', 'off');
+area(time, recession * max(length_rec), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'DisplayName', 'Recession');
+area(time, recession * min(length_rec), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'HandleVisibility', 'off');
 plot(time, UM_normalized, 'b', 'LineWidth', 1.5, 'DisplayName', 'Uncertainty');
 yline(UM_threshold, 'r--', 'LineWidth', 1, 'DisplayName', '1.65 std');
 plot(time(UM_exceeds), UM_normalized(UM_exceeds), 'k.', 'MarkerSize', 10, 'DisplayName', 'Above 1.65 std');
@@ -84,8 +108,8 @@ hold off;
 % Subplot (UF)
 subplot(2, 1, 2);
 hold on;
-area(time, recession * max(UF_normalized), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'DisplayName', 'Recession');
-area(time, recession * min(UF_normalized), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'HandleVisibility', 'off');
+area(time, recession * max(length_rec_1), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'DisplayName', 'Recession');
+area(time, recession * min(length_rec_1), 'FaceColor', [0.8, 0.8, 0.8], 'EdgeColor', 'none', 'HandleVisibility', 'off');
 plot(time, UF_normalized, 'r', 'LineWidth', 1.5, 'DisplayName', 'Uncertainty');
 yline(UF_threshold, 'r--', 'LineWidth', 1, 'DisplayName', '1.65 std');
 plot(time(UF_exceeds), UF_normalized(UF_exceeds), 'k.', 'MarkerSize', 10, 'DisplayName', 'Above 1.65 std');
@@ -96,7 +120,6 @@ legend('Location','northwest');
 hold off;
 
 sgtitle('Macro and Financial Uncertainty Over Time');
-
 
 %% Step 1: Descriptive analysis
 

@@ -57,7 +57,7 @@ FontSizeTimeSerieGraph=14;
 HorizonIRF = 60;
 
 % Data set
-DataSet = readmatrix('Topic 2 Data.xlsx');
+DataSet = readmatrix('JLN_data.xlsx');
 
 % Break dates
 TB1=284; % 1984:M3
