@@ -3,6 +3,8 @@
 % Giovanni Nannini (0001128796)
 % Topic 2
 
+tic
+   
 clc, clear
 
 global p
@@ -463,3 +465,5 @@ if p_value_LM < 0.05
 else
     disp('Fail to reject the null hypothesis: No residual autocorrelation.');
 end
+
+toc

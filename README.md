@@ -25,36 +25,27 @@ Using a nonrecursive identification scheme for uncertainty shocks that exploits 
 This project replicates and extends the analysis of [*"Uncertainty Across Volatility Regimes"*]( https://doi.org/10.1002/jae.2672)  
 by Giovanni Angelini, Emanuele Bacchiocchi, Giovanni Caggiano, and Luca Fanelli.  
 
-The contribution extends the observation period up to **2024**, studying the effects of uncertainty even after the **COVID-19 pandemic** and introducing additional identification restrictions.  
+The contribution extends the observation period up to **2024**, studying the effects of uncertainty even after the **COVID-19 pandemic** and introducing additional identification restrictions for this updated volatility regime. 
 
 ### **Key Findings:**  
 - **Uncertainty** is more likely a **cause** of declines in economic activity.  
 - **Macroeconomic regimes** should be studied separately due to **inversions** in the relationship between business cycles and uncertainty.  
+- **Financial and Macroeconomic uncertainty** need to be studied separatelly as uncertainty sources do to their different dynamics
+- **COVID-19** represent a specific kind of exogenous event. During this period both sources of uncertainty affect on impact the business cycle, but on the medium run are affected endogenously by the economic downturn.
 
 ### **Data Sources:**  
 The data used in this project were retrieved from:  
 **Jurado, Kyle, Sydney C. Ludvigson, and Serena Ng. 2015. "Measuring Uncertainty."**  
-[DOI: 10.1257/aer.20131193](https://www.sydneyludvigson.com/macro-and-financial-uncertainty-indexes)  
+[DOI: 10.1257/aer.20131193](https://www.sydneyludvigson.com/macro-and-financial-uncertainty-indexes)
+Additional data on the recession dates are avilable in the [NBER databes](https://www.nber.org/research/business-cycle-dating)
 
 ---
 
 ## **Scripts**
 
 ### **Main Scripts:**  
-- **`Structural_Var.R`**: Estimates the on-impact effects for both endogenous and endogenous model and identifies the model that fits better the data. Using the latter model plots the IRF using confidence intervals using a bootrsap approach.  
-- **`Preliminary_analysis.R`**: Implements a descriptive analysis.  
+- **`Structural_analysis`**: Estimates the on-impact effects for both endogenous and endogenous model and identifies the model that fits better the data. Using the latter model plots the IRF using confidence intervals using a iid bootrsap approach. The time required to run this estimated is estimated to be around 95 seconds.
+- **`Preliminary_analysis`**: Implements a descriptive analysis. The time required to run this code is estimated to be around 51 seconds.
 
 ### **Supporting Scripts (in `Functions/`):**  
-- **`Likelihood_SVAR_Unrestricted.R`**: Performs MLE using the whole sample.  
-- **`Likelihood_SVAR_Restricted_Upper.R`**: Performs MLE for the endogenous model.  
-- **`Likelihood_SVAR_Restricted.R`**: Performs MLE for the exogenous model.  
-- **`Likelihood_SVAR_Bootstrap.R`**: Performs MLE for the exogenous model using a bootstrapped sample.  
-
----
-
-## **Instructions**
-
-### **Loading Data:**  
-- The **JLK dataset** is stored in the `data/` folder.  
-- Use the script **`Preliminary_analysis.R`** to visualize a descriptive overview of the data.  
-- Use the script **`Structural_Var.R`** to preprocess the data and replicate the core results.  
+- **`Likelihood_SVAR_%...%`**: Performs all Maximum likelihood estimation needed to run the main scripts.  

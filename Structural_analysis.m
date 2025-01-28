@@ -3,6 +3,8 @@
 % Giovanni Nannini (0001128796)
 % Topic 2
 
+tic
+
 clear
 clear global
 clc
@@ -1480,3 +1482,5 @@ for i = 1:3
     end
 end
 end
+
+toc
