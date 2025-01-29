@@ -1,8 +1,6 @@
 # **STRUCTURAL VAR**
 
-## [**Extending Results of "Uncertainty Across Volatility Regimes"**]( https://doi.org/10.1002/jae.2672)  
-
-This project extends the results of *"Uncertainty Across Volatility Regimes"* to the post-COVID-19 period using identification-through-heteroskedasticity SVAR analysis.
+This project extends the results of [*"Uncertainty Across Volatility Regimes"*]( https://doi.org/10.1002/jae.2672)  to the post-COVID-19 period using identification-through-heteroskedasticity SVAR analysis.
 
 Using a nonrecursive identification scheme for uncertainty shocks that exploits breaks in the volatility of macroeconomic variables, this work addresses two key research questions:  
 - **Is uncertainty a cause or an effect of declines in economic activity?**  
@@ -29,8 +27,7 @@ The contribution extends the observation period up to **2024**, studying the eff
 
 ### **Key Findings:**  
 - **Uncertainty** is more likely a **cause** of declines in economic activity.  
-- **Macroeconomic regimes** should be studied separately due to **inversions** in the relationship between business cycles and uncertainty.  
-- **Financial and Macroeconomic uncertainty** need to be studied separatelly as uncertainty sources do to their different dynamics
+- **Financial and Macroeconomic uncertainty** need to be studied separatelly as uncertainty sources exhibits different dynamics.
 - **COVID-19** represent a specific kind of exogenous event. During this period both sources of uncertainty affect on impact the business cycle, but on the medium run are affected endogenously by the economic downturn.
 
 ### **Data Sources:**  
