@@ -35,9 +35,9 @@ The contribution extends the observation period up to **2024**, studying the eff
 
 ### **Data Sources:**  
 The data used in this project were retrieved from:  
-**Jurado, Kyle, Sydney C. Ludvigson, and Serena Ng. 2015. "Measuring Uncertainty."**  
-[DOI: 10.1257/aer.20131193](https://www.sydneyludvigson.com/macro-and-financial-uncertainty-indexes)
-Additional data on the recession dates are avilable in the [NBER databes](https://www.nber.org/research/business-cycle-dating)
+- [**FRED: Idustrial Production Total Index**](https://fred.stlouisfed.org/series/INDPRO) for the industrial production growth.
+- [**Jurado, Kyle, Sydney C. Ludvigson, and Serena Ng. 2015. "Measuring Uncertainty."**](https://www.sydneyludvigson.com/macro-and-financial-uncertainty-indexes) for the uncertainty measures;
+- [**NBER database**](https://www.nber.org/research/business-cycle-dating) for the recession dates;
 
 ---
 
