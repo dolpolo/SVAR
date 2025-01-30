@@ -1,5 +1,5 @@
 %% Structural Macroeconometrics - Exam Project
-% Davide Delfino ()
+% Davide Delfino (0001126595)
 % Giovanni Nannini (0001128796)
 % Topic 2
 
@@ -67,7 +67,7 @@ TB2=569; % 2007:M12
 TB3=715; % 2020:M2
 
 %% Step 0: Set up
-DataSet = DataSet(2:end-4, [3, 5, 8]);
+DataSet = DataSet(:, [3, 5, 8]);
 AllDataSet=DataSet;
 M=size(DataSet,2);
 

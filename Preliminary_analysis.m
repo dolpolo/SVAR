@@ -10,8 +10,8 @@ clc, clear
 global p
 
 dataTable = readtable('JLN_data.xlsx');
-time = datetime(dataTable{2:end-4, 1}, 'InputFormat', 'yyyy-MM-dd');
-data = dataTable{2:end-4, [3, 5, 8]};
+time = datetime(dataTable{:, 1}, 'InputFormat', 'yyyy-MM-dd');
+data = dataTable{:, [3, 5, 8]};
 
 
 % Variables (of interest in dataset)
@@ -49,7 +49,7 @@ grid on;
 
 %% Dataset representation
 
-data = dataTable{2:end-4, [3, 5, 8, 11]};
+data = dataTable{:, [3, 5, 8, 11]};
 recession = data(:,4);
 length_rec= [-14.5, 7];
 figure;
